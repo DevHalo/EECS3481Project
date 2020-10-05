@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="EECS3481Project:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/EECS3481Project_jar</output-path>
+    <root id="archive" name="EECS3481Project.jar">
+      <element id="module-output" name="EECS3481Project" />
+    </root>
+  </artifact>
+</component>
