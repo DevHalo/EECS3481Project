@@ -1,7 +1,6 @@
 package com.crypt;
 
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 
@@ -45,8 +44,8 @@ public class CryptoTest {
         System.out.println("Moving test files to working directory...");
 
         for (int i = 0; i < testFiles.length; i++) {
-            System.out.println("Moving file: " + testFiles[i].getName() + " to: " +
-                    System.getProperty("user.dir") + "\\" + testFiles[i].getName());
+            System.out.printf("Moving file: %s to: %s \\ %s%n", testFiles[i].getName(),
+                    System.getProperty("user.dir"), testFiles[i].getName());
 
             // Copy files from test folder to working directory, then calculate MD5 from original file.
             try {
@@ -60,8 +59,7 @@ public class CryptoTest {
                 out.close();
 
                 md5s[i] = ByteToHexString(md.digest(in));
-                System.out.println("FILE NAME: " + testFiles[i].getName() + " | MD5 CHECKSUM:");
-                System.out.println(md5s[i]);
+                System.out.printf("FILE NAME: %s | MD5 CHECKSUM:%n%s%n", testFiles[i].getName(), md5s[i]);
 
             } catch (FileNotFoundException | NoSuchAlgorithmException e) {
                 fail("This shouldn't happen.");
