@@ -6,6 +6,7 @@ Symmetric
 - XOR
 - AES
 - RC4
+- BLOWFISH
 
 Asymmetric
 - RSA
