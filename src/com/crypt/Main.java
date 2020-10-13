@@ -13,12 +13,13 @@ public class Main {
 
     public static void main(String[] args) {
 
-        String fileName = "Justice.League.Dark.Apokolips.War.2020.1080p.WEBRip.DD5.1.x264-CM.mkv";
+        //String fileName = "Justice.League.Dark.Apokolips.War.2020.1080p.WEBRip.DD5.1.x264-CM.mkv";
         //String fileName = "51QYvscjWjL._AC_SL1000_.jpg";
         String key = "MMAAD";
 
         List<File> buffer = Utilities.fileOrFolder(new File("/Users/dj/Downloads/TEST"));
 
+        //Multi-threading for files...
         for (File elements : buffer)
         {
             if (!elements.isDirectory()) {

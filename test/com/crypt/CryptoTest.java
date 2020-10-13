@@ -88,7 +88,7 @@ public class CryptoTest {
 
                 //fileName = System.getProperty("user.dir") +"/"+ testFiles[i].getName();
                 // decrypt file here
-                XOR.xorFile(fileName.toString() + Utilities.encryptedExtension, "MMAAD".getBytes(), false);
+                XOR.xorFile(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, "MMAAD".getBytes(), false);
 
 
                 byte[] output = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/" +

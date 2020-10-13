@@ -18,11 +18,11 @@ public class Utilities {
             3 .) Check if file path + file length + new extension is possible - done
      */
 
-    public static String encryptedExtension = ".crypt";
+    public static final String ENCRYPTED_EXTENSION = ".crypt";
 
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 255;
-    private static final int maxFileSize = 4096;
+    private static final int MAX_FILE_SIZE = 8192;
 
     //Used to add confusion / diffusion to cipher algorithm
     private static int IV_LENGTH = 16;
@@ -46,15 +46,13 @@ public class Utilities {
             long fileSize = Files.size(Paths.get(filePathAndName));
 
             //If fileSize is greater than the max integer value...
-            if (fileSize > maxFileSize)
+            if (fileSize > MAX_FILE_SIZE)
             {
-                byte[] buffer = new byte[maxFileSize];
+                byte[] buffer = new byte[MAX_FILE_SIZE];
 
                 try(BufferedInputStream in = new BufferedInputStream(new FileInputStream(filePathAndName))) {
 
-
-                    in.read(buffer, 0, maxFileSize);
-
+                    in.read(buffer, 0, MAX_FILE_SIZE);
                 }
                 return buffer;
             }
@@ -74,7 +72,7 @@ public class Utilities {
             long fileSize = Files.size(Paths.get(filePathAndName));
 
             //If you got a big file (larger than 2 Gb..., just encrypt the first bits instead)
-            if (fileSize > maxFileSize)
+            if (fileSize > MAX_FILE_SIZE)
             {
                 //Source:
                 //https://stackoverflow.com/questions/181408/best-way-to-write-bytes-in-the-middle-of-a-file-in-java
@@ -85,14 +83,14 @@ public class Utilities {
                 hugeFile.close();
             }
             else
-                Files.write(Paths.get(filePathAndName), buffer, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                Files.write(Paths.get(filePathAndName), buffer, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
             String newFilePathAndName = "";
 
             //encryptFlag is true then encrypt, otherwise, decrypt
             if (encryptFlag) {
                 //Check if file path + file name < 255
-                if (Utilities.isNewExtensionPossible(filePathAndName, encryptedExtension))
+                if (Utilities.isNewExtensionPossible(filePathAndName, ENCRYPTED_EXTENSION))
                     newFilePathAndName = Utilities.setEncryptedExtension(filePathAndName);
             }
             else {
@@ -124,7 +122,7 @@ public class Utilities {
 
     //Set the encrypted extension
     public static String setEncryptedExtension(String filePathAndName) {
-        return isEmpty(filePathAndName) ? filePathAndName : filePathAndName.concat(encryptedExtension);
+        return isEmpty(filePathAndName) ? filePathAndName : filePathAndName.concat(ENCRYPTED_EXTENSION);
     }
 
     //Set the normal extension
@@ -132,8 +130,8 @@ public class Utilities {
 
         //If it does end with extension, remove it
         String newFilePathAndName  = "";
-        if (filePathAndName.endsWith(encryptedExtension))
-            newFilePathAndName = filePathAndName.substring(0, filePathAndName.length() - encryptedExtension.length());
+        if (filePathAndName.endsWith(ENCRYPTED_EXTENSION))
+            newFilePathAndName = filePathAndName.substring(0, filePathAndName.length() - ENCRYPTED_EXTENSION.length());
 
         return isEmpty(filePathAndName) ? filePathAndName : newFilePathAndName;
     }
