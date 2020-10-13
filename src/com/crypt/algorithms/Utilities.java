@@ -19,6 +19,8 @@ public class Utilities {
      */
 
     public static final String ENCRYPTED_EXTENSION = ".crypt";
+    public static final boolean ENCRYPT = true;
+    public static final boolean DECRYPT = false;
 
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 255;

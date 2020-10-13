@@ -9,8 +9,7 @@ import java.nio.file.Files;
 
 import java.security.MessageDigest;
 
-import com.crypt.algorithms.Utilities;
-import com.crypt.algorithms.XOR;
+import com.crypt.algorithms.*;
 
 import org.junit.jupiter.api.*;
 
@@ -133,7 +132,7 @@ public class CryptoTest {
 
             // Encrypt file here
             try {
-                XOR.xorFile(fileName.toString(), key.getBytes(), true);
+                XOR.xorFile(fileName.toString(), key.getBytes(), Utilities.ENCRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to encrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
@@ -142,7 +141,49 @@ public class CryptoTest {
             // Decrypt file here
             try {
                 XOR.xorFile(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
-                        key.getBytes(), false);
+                        key.getBytes(), Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
+            }
+
+            try {
+                byte[] output = Files.readAllBytes(fileName.toPath());
+
+                // Check MD5 checksum for match
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                md.reset();
+
+                byte[] alteredmd5 = md.digest(output);
+
+                assertEquals(md5s[i], ByteToHexString(alteredmd5));
+            } catch (IOException ioException) {
+                fail("Failed to read decrypted file " + fileName.toString());
+            } catch (NoSuchAlgorithmException noAlgoException) {
+                fail("Could not initialize MD5 Message Digest");
+            }
+        }
+    }
+    /**
+     * Tests the Blowfish encryption and decryption algorithm
+     */
+    @Test
+    @DisplayName("Blowfish Encryption and Decryption Test")
+    void BlowfishTest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Encrypt file here
+            try {
+                BLOWFISH.crypt(fileName.toString(), key.getBytes(), Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
+            }
+
+            // Decrypt file here
+            try {
+                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(), Utilities.DECRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to decrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
