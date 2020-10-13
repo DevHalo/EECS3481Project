@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 
+import com.crypt.algorithms.Utilities;
+import com.crypt.algorithms.XOR;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +52,7 @@ public class CryptoTest {
             // Copy files from test folder to working directory, then calculate MD5 from original file.
             try {
                 byte[] in = Files.readAllBytes(testFiles[i].toPath());
-                FileOutputStream out = new FileOutputStream(new File(System.getProperty("user.dir") +
+                FileOutputStream out = new FileOutputStream(new File(System.getProperty("user.dir") + "/" +
                         testFiles[i].getName()));
                 MessageDigest md = MessageDigest.getInstance("MD5");
                 md.reset();
@@ -78,15 +80,19 @@ public class CryptoTest {
 
         for (int i = 0; i < testFiles.length; i++) {
             try {
-                byte[] input = Files.readAllBytes(Paths.get(System.getProperty("user.dir") +
+                byte[] input = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/" +
                         testFiles[i].getName()));
                 // encrypt file here
+                File fileName = new File (System.getProperty("user.dir") +"/"+ testFiles[i].getName());
+                XOR.xorFile(fileName.toString(), "MMAAD".getBytes(), true);
 
-
+                //fileName = System.getProperty("user.dir") +"/"+ testFiles[i].getName();
                 // decrypt file here
+                XOR.xorFile(fileName.toString() + Utilities.encryptedExtension, "MMAAD".getBytes(), false);
 
 
-                byte[] output = input; // TEST REMOVE LATER
+                byte[] output = Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "/" +
+                        testFiles[i].getName())); // TEST REMOVE LATER
                 // Check MD5 checksum for match
                 MessageDigest md = MessageDigest.getInstance("MD5");
                 md.reset();
