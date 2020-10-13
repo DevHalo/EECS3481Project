@@ -18,11 +18,11 @@ public class BLOWFISH {
         byte[] cryptString = Utilities.readFile(filePath);
         byte[] cryptedString;
 
-            blowfish = Cipher.getInstance(BLOWFISH);
-            SecretKeySpec cryptKey = new SecretKeySpec(key, BLOWFISH);
-            blowfish.init(getCryptMode(isEncryption), cryptKey);
-            cryptedString = blowfish.doFinal(cryptString);
-            Utilities.writeFile(cryptedString, filePath, isEncryption);
+        blowfish = Cipher.getInstance(BLOWFISH);
+        SecretKeySpec cryptKey = new SecretKeySpec(key, BLOWFISH);
+        blowfish.init(getCryptMode(isEncryption), cryptKey);
+        cryptedString = blowfish.doFinal(cryptString);
+        Utilities.writeFile(cryptedString, filePath, isEncryption);
 
     }
     private static int getCryptMode(boolean encryption) {
