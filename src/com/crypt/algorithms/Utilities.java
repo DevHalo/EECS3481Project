@@ -100,20 +100,24 @@ public class Utilities {
             File oldFile = new File(filePathAndName);
             File newFile = new File(newFilePathAndName);
 
+            if (newFile.exists())
+                deleteFile(newFile.toString());
+
             oldFile.renameTo(newFile);
+
 
         } catch(IOException e) {
             e.printStackTrace();
         }
     }
 
-//    public static void deleteFile(String filePathAndName) {
-//        try {
-//            Files.delete(Paths.get(filePathAndName));
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    public static void deleteFile(String filePathAndName) {
+        try {
+            Files.delete(Paths.get(filePathAndName));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     //Check if the string is null or empty
     public static boolean isEmpty(String buffer) {
