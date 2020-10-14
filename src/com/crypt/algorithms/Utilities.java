@@ -18,24 +18,35 @@ public class Utilities {
             3 .) Check if file path + file length + new extension is possible - done
      */
 
+    //Encrypted  extension
     public static final String ENCRYPTED_EXTENSION = ".crypt";
 
     //Max Path length in Windows
-    private static final int MAX_PATH_LENGTH = 255;
-    private static final int MAX_FILE_SIZE = 8192;
+    private static final int MAX_PATH_LENGTH = 249;
 
-    //Used to add confusion / diffusion to cipher algorithm
-    private static int IV_LENGTH = 16;
-    private static String SECRET_KEY = "EECS3481";
 
-    public static byte[] getIV(int bytes) {
-        byte iv[] = new byte[IV_LENGTH];
-        Random ivGenerator = new Random();
+    private static final int MAX_FILE_SIZE = Integer.MAX_VALUE - 16;
+
+    /**
+     *
+     * @param bytes         - Initial seed for Initialization Vector (IV)
+     * @param byteLength    - Ciphers require have different length of IV
+     *                        For AES 128/192/256 Bit = 16/24/32 Bytes
+     *                        For Blowfish = 8 Bytes
+     * @return              - returns IV of byteLength
+     */
+    public static byte[] getIV(int bytes, int byteLength) {
+        byte iv[] = new byte[byteLength];
+        Random ivGenerator = new Random(bytes);
         ivGenerator.nextBytes(iv);
         return iv;
     }
 
-    //read file with a specified fPN (file Path and Name) and store it in byte array
+    /**
+     *
+     * @param filePathAndName - Name of file to be read in bytes
+     * @return                - returns a byte array of the file
+     */
     public static byte[] readFile(String filePathAndName)  {
         //Source:
         // https://stackoverflow.com/questions/858980/file-to-byte-in-java
@@ -65,13 +76,18 @@ public class Utilities {
         return null;
     }
 
-    //write file with bytes given with a specified fPN (file Path and Name)
+    /**
+     *
+     * @param buffer          - Needs a byte array of a file
+     * @param filePathAndName - Name of the file to be written
+     * @param encryptFlag     - Is the file going encrypted (True) or decrypted? (False)
+     */
     public static void writeFile(byte[] buffer, String filePathAndName, boolean encryptFlag) {
 
         try {
             long fileSize = Files.size(Paths.get(filePathAndName));
 
-            //If you got a big file (larger than 2 Gb..., just encrypt the first bits instead)
+            //To be re-written
             if (fileSize > MAX_FILE_SIZE)
             {
                 //Source:
@@ -87,10 +103,10 @@ public class Utilities {
 
             String newFilePathAndName = "";
 
-            //encryptFlag is true then encrypt, otherwise, decrypt
+            //encryptFlag otherwise, decrypts true then encrypt, ot
             if (encryptFlag) {
                 //Check if file path + file name < 255
-                if (Utilities.isNewExtensionPossible(filePathAndName, ENCRYPTED_EXTENSION))
+                if (Utilities.isNewExtensionPossible(filePathAndName))
                     newFilePathAndName = Utilities.setEncryptedExtension(filePathAndName);
             }
             else {
@@ -111,25 +127,42 @@ public class Utilities {
         }
     }
 
+    /**
+     *
+     * @param filePathAndName - Deletes file
+     */
     public static void deleteFile(String filePathAndName) {
         try {
+            if (new File(filePathAndName).exists())
             Files.delete(Paths.get(filePathAndName));
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    //Check if the string is null or empty
+    /**
+     *
+     * @param buffer          - Check if the String is 0 or null
+     * @return                - If it is, return true, otherwise return false
+     */
     public static boolean isEmpty(String buffer) {
         return (buffer.length() == 0 || buffer == null);
     }
 
-    //Set the encrypted extension
+    /**
+     *
+     * @param filePathAndName - get the filePathAndName of a file as a String
+     * @return                - returns filePathAndName + encrypted extension
+     */
     public static String setEncryptedExtension(String filePathAndName) {
         return isEmpty(filePathAndName) ? filePathAndName : filePathAndName.concat(ENCRYPTED_EXTENSION);
     }
 
-    //Set the normal extension
+    /**
+     *
+     * @param filePathAndName - get the filePathAndName of a file as a String
+     * @return                - returns filePathAndName + decrypted extension
+     */
     public static String setNormalExtension(String filePathAndName) {
 
         //If it does end with extension, remove it
@@ -140,11 +173,26 @@ public class Utilities {
         return isEmpty(filePathAndName) ? filePathAndName : newFilePathAndName;
     }
 
-    //Check if fPN + extension <= 255
-    public static boolean isNewExtensionPossible(String filePathAndName, String extension) {
-        return (filePathAndName.length() + extension.length()) <= MAX_PATH_LENGTH;
+    /**
+     *
+     * @param filePathAndName - Pass a filename to method
+     * @return                - Checks the filename+encrypted extension
+     *                          is not greater than Windows file limit
+     */
+    public static boolean isNewExtensionPossible(String filePathAndName) {
+        Path buffer = Paths.get(filePathAndName);
+        return (buffer.toString().length() +
+                filePathAndName.length() +
+                ENCRYPTED_EXTENSION.length()
+                ) <= MAX_PATH_LENGTH;
     }
 
+    /**
+     * Non-recursive iteration and collecting of files,
+     * adds each file found to a list and passes it as a file array
+     * @param startingFolderOrFile - Starting point to check
+     * @return                     - Returns an array of File(s)
+     */
     public static File[] iterateThroughFolder(String startingFolderOrFile){
         File newTree = new File(startingFolderOrFile);
         List<File> buffer = new ArrayList<>();
@@ -155,13 +203,20 @@ public class Utilities {
             {
                 buffer.add(new File(fileOrFolder));
             }
+            File[] output = new File[buffer.size()];
+
+            return buffer.toArray(output);
         }
 
-        File[] output = new File[buffer.size()];
-
-        return buffer.toArray(output);
+        return new File[]{newTree};
     }
 
+    /**
+     * Recursive iteration and collecting of files,
+     * adds each file found to a list and passes it as a file array
+     * @param node             - Starting point to check
+     * @return                 - Returns an array of File(s)
+     */
     public static List<File> fileOrFolder(File node){
 
         System.out.println(node.getAbsoluteFile());
@@ -175,6 +230,9 @@ public class Utilities {
                 buffer.add(subItem);
             }
         }
+        else
+            buffer.add(node);
+
         return buffer;
     }
 }
