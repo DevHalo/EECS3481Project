@@ -9,6 +9,7 @@ import java.nio.file.Files;
 
 import java.security.MessageDigest;
 
+import com.crypt.algorithms.RC4;
 import com.crypt.algorithms.Utilities;
 import com.crypt.algorithms.XOR;
 
@@ -146,6 +147,44 @@ public class CryptoTest {
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to decrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
+            }
+
+            try {
+                byte[] output = Files.readAllBytes(fileName.toPath());
+
+                // Check MD5 checksum for match
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                md.reset();
+
+                byte[] alteredmd5 = md.digest(output);
+
+                assertEquals(md5s[i], ByteToHexString(alteredmd5));
+            } catch (IOException ioException) {
+                fail("Failed to read decrypted file " + fileName.toString());
+            } catch (NoSuchAlgorithmException noAlgoException) {
+                fail("Could not initialize MD5 Message Digest");
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("RC4 Encryption and Decryption Test")
+    void RC4Test() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            try {
+                RC4.crypt(fileName.toString(), key.getBytes(), true);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            try {
+                RC4.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(), false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
             }
 
             try {
