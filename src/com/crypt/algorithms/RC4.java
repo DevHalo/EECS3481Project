@@ -11,6 +11,12 @@ import java.security.NoSuchAlgorithmException;
 // Implementation of the RC4 algorithm
 public class RC4 {
 
+    /**
+     * Encrypts or decrypts a file using the RC4 algorithm.
+     * @param fileName Path of the file
+     * @param startingKey Key used to encrypt the file
+     * @param encrypt Whether to encrypt or decrypt the file
+     */
     public static void crypt(String fileName, byte[] startingKey, boolean encrypt) {
         try {
             Cipher cipher = Cipher.getInstance("ARCFOUR");
