@@ -1,9 +1,6 @@
 package com.crypt;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 
 import java.nio.file.Files;
 
@@ -77,6 +74,33 @@ public class CryptoTest {
     }
 
     /**
+     * Generates a MD5 hash from reading a target file. Test will fail if
+     * the MD5 generated from this file does not match the supplied source MD5.
+     *
+     * @param fileName  Path object to the file to be checked
+     * @param sourceMD5 String representation of the MD5 hash
+     * @param diff      If true, the method will assert if the MD5s are supposed to be different
+     */
+    void VerifyMD5(File fileName, String sourceMD5, boolean diff) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.reset();
+
+            byte[] fileBytes = Files.readAllBytes(fileName.toPath());
+
+            if (diff) {
+                assertNotEquals(sourceMD5, ByteToHexString(md.digest(fileBytes)));
+            } else {
+                assertEquals(sourceMD5, ByteToHexString(md.digest(fileBytes)));
+            }
+        } catch (NoSuchAlgorithmException e) {
+            fail("System does not support MD5. Test can not be completed.");
+        } catch (IOException e) {
+            fail("Failed to read output file: " + fileName.getName());
+        }
+    }
+
+    /**
      * Copy test file from test resources directory to working directory
      */
     @BeforeEach
@@ -140,6 +164,9 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
             }
 
+            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    md5s[i], true);
+
             // Decrypt file here
             try {
                 XOR.xorFile(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
@@ -149,24 +176,13 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
             }
 
-            try {
-                byte[] output = Files.readAllBytes(fileName.toPath());
-
-                // Check MD5 checksum for match
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                md.reset();
-
-                byte[] alteredmd5 = md.digest(output);
-
-                assertEquals(md5s[i], ByteToHexString(alteredmd5));
-            } catch (IOException ioException) {
-                fail("Failed to read decrypted file " + fileName.toString());
-            } catch (NoSuchAlgorithmException noAlgoException) {
-                fail("Could not initialize MD5 Message Digest");
-            }
+            VerifyMD5(fileName, md5s[i], false);
         }
     }
 
+    /**
+     * Tests the RC4 encryption and decryption algorithm
+     */
     @Test
     @DisplayName("RC4 Encryption and Decryption Test")
     void RC4Test() {
@@ -180,6 +196,9 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + fileName.toString());
             }
 
+            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    md5s[i], true);
+
             try {
                 RC4.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(), false);
             } catch (Exception e) {
@@ -187,21 +206,33 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + fileName.toString());
             }
 
-            try {
-                byte[] output = Files.readAllBytes(fileName.toPath());
+            VerifyMD5(fileName, md5s[i], false);
+        }
+    }
 
-                // Check MD5 checksum for match
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                md.reset();
+    /**
+     * Runs the XOR algorithm using Main to simulate command line usage
+     */
+    @Test
+    @DisplayName("Command Line Interface Test")
+    void CommandLineTest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
 
-                byte[] alteredmd5 = md.digest(output);
+            // Test parameters include:
+            // Encryption and Decryption of each file in the test folder, using XOR. User confirmation is skipped.
 
-                assertEquals(md5s[i], ByteToHexString(alteredmd5));
-            } catch (IOException ioException) {
-                fail("Failed to read decrypted file " + fileName.toString());
-            } catch (NoSuchAlgorithmException noAlgoException) {
-                fail("Could not initialize MD5 Message Digest");
-            }
+            assertDoesNotThrow(() ->
+                    Main.main(new String[]{"encrypt", fileName.getAbsolutePath(), "xor", "--force", "--dry"}));
+
+            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    md5s[i], true);
+
+            assertDoesNotThrow(() ->
+                    Main.main(new String[]{"decrypt", fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION,
+                            "xor", "--force", "--dry"}));
+
+            VerifyMD5(fileName, md5s[i], false);
         }
     }
 }
