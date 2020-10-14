@@ -35,7 +35,7 @@ public class BLOWFISH {
 
         blowfish.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(iv));
 
-        byte[] paddedToEncrypt = new byte[toEncrypt.length + 16 - (toEncrypt.length % blowfish.getBlockSize())];
+        byte[] paddedToEncrypt = new byte[toEncrypt.length + (blowfish.getBlockSize() * 2) - (toEncrypt.length % blowfish.getBlockSize())];
         int addedBytes = 16 - (toEncrypt.length % blowfish.getBlockSize());
 
         System.arraycopy(toEncrypt, 0, paddedToEncrypt, 0, toEncrypt.length);
@@ -47,9 +47,7 @@ public class BLOWFISH {
         System.arraycopy(encrypted, 0, toWrite, 0, encrypted.length);
         System.arraycopy(iv, 0, toWrite, encrypted.length, iv.length);
 
-        Utilities.writeFile(toWrite, filePath, Utilities.ENCRYPT);
-
-        System.out.println("--");
+        Utilities.writeFile(paddedToEncrypt, filePath, Utilities.ENCRYPT);
 
     }
 
