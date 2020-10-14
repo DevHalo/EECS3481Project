@@ -6,9 +6,7 @@ import java.nio.file.Files;
 
 import java.security.MessageDigest;
 
-import com.crypt.algorithms.RC4;
-import com.crypt.algorithms.Utilities;
-import com.crypt.algorithms.XOR;
+import com.crypt.algorithms.*;
 
 import org.junit.jupiter.api.*;
 
@@ -201,6 +199,36 @@ public class CryptoTest {
 
             try {
                 RC4.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(), false);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifyMD5(fileName, md5s[i], false);
+        }
+    }
+
+    /**
+     * Tests the Blowfish encryption and decryption algorithm
+     */
+    @Test
+    @DisplayName("Blowfish Encryption and Decryption Test")
+    void BlowfishTest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            try {
+                BLOWFISH.crypt(fileName.toString(), key.getBytes("UTF-8"), Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    md5s[i], true);
+
+            try {
+                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes("UTF-8"), Utilities.DECRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to decrypt file " + fileName.toString());
