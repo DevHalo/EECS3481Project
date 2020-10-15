@@ -18,54 +18,66 @@ import java.util.Base64;
 // Implementation of the Blowfish algorithm
 public class BLOWFISH {
 
-    public static void crypt(String filePath, byte[] key, boolean isEncryption) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, UnsupportedEncodingException {
+    public static void crypt(String filePath, byte[] key, boolean isEncryption) {
         if (isEncryption) encrypt(filePath, key);
         else decrypt(filePath, key);
 
     }
-    private static void encrypt(String filePath, byte[] key) throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeyException, UnsupportedEncodingException {
+    private static void encrypt(String filePath, byte[] key)  {
 
-        byte[] toEncrypt = Utilities.readFile(filePath);
+        try {
+            byte[] toEncrypt = Utilities.readFile(filePath);
 
-        SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
-        Cipher blowfish = Cipher.getInstance("Blowfish/CBC/NoPadding");
+            SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
+            Cipher blowfish = Cipher.getInstance("Blowfish/CBC/NoPadding");
 
-        byte[] iv = new byte[blowfish.getBlockSize()];
-        SecureRandom secureRandom = new SecureRandom();
-        secureRandom.nextBytes(iv);
+            byte[] iv = new byte[blowfish.getBlockSize()];
+            SecureRandom secureRandom = new SecureRandom();
+            secureRandom.nextBytes(iv);
 
-        blowfish.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(iv));
+            blowfish.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(iv));
 
-        int numPadding = (blowfish.getBlockSize() * 2) - (toEncrypt.length % blowfish.getBlockSize());
-        byte[] paddedToEncrypt = new byte[toEncrypt.length + numPadding];
-        System.arraycopy(toEncrypt, 0, paddedToEncrypt, 0, toEncrypt.length);
-        paddedToEncrypt[paddedToEncrypt.length - 1] = (byte) numPadding;
+            int numPadding = (blowfish.getBlockSize() * 2) - (toEncrypt.length % blowfish.getBlockSize());
+            byte[] paddedToEncrypt = new byte[toEncrypt.length + numPadding];
+            System.arraycopy(toEncrypt, 0, paddedToEncrypt, 0, toEncrypt.length);
+            paddedToEncrypt[paddedToEncrypt.length - 1] = (byte) numPadding;
 
-        byte[] encrypted = blowfish.doFinal(paddedToEncrypt);
+            byte[] encrypted = blowfish.doFinal(paddedToEncrypt);
 
-        byte[] toWrite = new byte[encrypted.length + blowfish.getBlockSize()];
-        System.arraycopy(encrypted, 0, toWrite, 0, encrypted.length);
-        System.arraycopy(iv, 0, toWrite, encrypted.length, iv.length);
-        Utilities.writeFile(toWrite, filePath, Utilities.ENCRYPT);
+            byte[] toWrite = new byte[encrypted.length + blowfish.getBlockSize()];
+            System.arraycopy(encrypted, 0, toWrite, 0, encrypted.length);
+            System.arraycopy(iv, 0, toWrite, encrypted.length, iv.length);
+            Utilities.writeFile(toWrite, filePath, Utilities.ENCRYPT);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
+                InvalidAlgorithmParameterException | InvalidKeyException e) {
+            System.out.println("Encryption failed");
+            e.printStackTrace();
+        }
     }
 
-    private static void decrypt(String filePath, byte[] key) throws NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeyException, UnsupportedEncodingException {
+    private static void decrypt(String filePath, byte[] key) {
 
-        SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
-        Cipher blowfish = Cipher.getInstance("Blowfish/CBC/NoPadding");
+        try {
+            SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
+            Cipher blowfish = Cipher.getInstance("Blowfish/CBC/NoPadding");
 
-        byte[] toDecryptFull = Utilities.readFile(filePath);
+            byte[] toDecryptFull = Utilities.readFile(filePath);
 
-        byte[] iv = Arrays.copyOfRange(toDecryptFull, toDecryptFull.length - blowfish.getBlockSize(), toDecryptFull.length);
-        byte[] toDecrypt = Arrays.copyOfRange(toDecryptFull, 0, toDecryptFull.length - iv.length);
+            byte[] iv = Arrays.copyOfRange(toDecryptFull, toDecryptFull.length - blowfish.getBlockSize(), toDecryptFull.length);
+            byte[] toDecrypt = Arrays.copyOfRange(toDecryptFull, 0, toDecryptFull.length - iv.length);
 
-        blowfish.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(iv));
-        byte[] decrypted = blowfish.doFinal(toDecrypt);
+            blowfish.init(Cipher.DECRYPT_MODE, keySpec, new IvParameterSpec(iv));
+            byte[] decrypted = blowfish.doFinal(toDecrypt);
 
-        int numPadding = decrypted[decrypted.length - 1] & 0xFF;
-        byte[] decryptedUnpadded = new byte[decrypted.length - numPadding];
-        System.arraycopy(decrypted, 0, decryptedUnpadded, 0, decryptedUnpadded.length);
+            int numPadding = decrypted[decrypted.length - 1] & 0xFF;
+            byte[] decryptedUnpadded = new byte[decrypted.length - numPadding];
+            System.arraycopy(decrypted, 0, decryptedUnpadded, 0, decryptedUnpadded.length);
 
-        Utilities.writeFile(decryptedUnpadded, filePath, Utilities.DECRYPT);
+            Utilities.writeFile(decryptedUnpadded, filePath, Utilities.DECRYPT);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
+                InvalidAlgorithmParameterException | InvalidKeyException e) {
+            System.out.println("Decryption failed");
+            e.printStackTrace();
+        }
     }
 }
