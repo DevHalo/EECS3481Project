@@ -86,31 +86,31 @@ public class Main {
                             continue;
                         }
 
-                        if (f.getName().endsWith(Utilities.ENCRYPTED_EXTENSION) && encrypt) {
-                            System.out.printf("This file already has the %s extension. Are you sure you want to" +
-                                            " continue? (YES/Y). Otherwise program will skip this file.",
-                                    Utilities.ENCRYPTED_EXTENSION);
-
-                            if (declinePrompt(in)) return;
-                        }
-
-                        System.out.printf(" The file %s is about to be %s%n",
-                                f.getName(), encrypt ? " encrypted." : "decrypted.");
-
-                        if (dry) {
-                            System.out.println("--dry was selected. Skipping algorithm execution.");
-                            continue;
-                        }
+//                        if (f.getName().endsWith(Utilities.ENCRYPTED_EXTENSION) && encrypt) {
+//                            System.out.printf("This file already has the %s extension. Are you sure you want to" +
+//                                            " continue? (YES/Y). Otherwise program will skip this file.",
+//                                    Utilities.ENCRYPTED_EXTENSION);
+//
+//                            if (declinePrompt(in)) return;
+//                        }
+//
+//                        System.out.printf(" The file %s is about to be %s%n",
+//                                f.getName(), encrypt ? " encrypted." : "decrypted.");
+//
+//                        if (dry) {
+//                            System.out.println("--dry was selected. Skipping algorithm execution.");
+//                            continue;
+//                        }
 
                         // To prevent accidental encryption/decryption, the user will be prompted before executing
                         // any algorithm for EACH file.
-                        if (Arrays.stream(args).anyMatch(str ->
-                                str.toUpperCase().equals("--FORCE") || str.toUpperCase().equals("-F"))) {
-                            System.out.println("Are you sure you want to continue? (YES/Y)." +
-                                    " Otherwise program will exit.");
-
-                            if (declinePrompt(in)) return;
-                        }
+//                        if (Arrays.stream(args).anyMatch(str ->
+//                                str.toUpperCase().equals("--FORCE") || str.toUpperCase().equals("-F"))) {
+//                            System.out.println("Are you sure you want to continue? (YES/Y)." +
+//                                    " Otherwise program will exit.");
+//
+//                            if (declinePrompt(in)) return;
+//                        }
 
                         // TODO: Parse input for each algorithm
                         switch (args[2].toUpperCase()) {

@@ -2,6 +2,7 @@ package com.crypt.algorithms;
 
 import java.io.*;
 import java.nio.file.*;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.*;
 
@@ -20,6 +21,8 @@ public class Utilities {
 
     //Encrypted  extension
     public static final String ENCRYPTED_EXTENSION = ".crypt";
+    public static final boolean ENCRYPT = true;
+    public static final boolean DECRYPT = false;
 
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 249;
@@ -35,9 +38,9 @@ public class Utilities {
      *                        For Blowfish = 8 Bytes
      * @return              - returns IV of byteLength
      */
-    public static byte[] getIV(int bytes, int byteLength) {
+    public static byte[] getIV(byte[] bytes, int byteLength) {
         byte iv[] = new byte[byteLength];
-        Random ivGenerator = new Random(bytes);
+        java.security.SecureRandom ivGenerator =  new SecureRandom(bytes);
         ivGenerator.nextBytes(iv);
         return iv;
     }
