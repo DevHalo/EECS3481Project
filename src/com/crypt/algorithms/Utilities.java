@@ -81,6 +81,32 @@ public class Utilities {
 
     /**
      *
+     * @param filePathAndName - Name of the file to be written
+     * @param position        - Traverse the file to position indicated
+     * @param EOF             - If True, it seeks to EOF - paddingLength position otherwise,
+     *                                   it seeks to the position and reads bytes of paddingLength
+     */
+    public static byte[] readDataAtOffset(String filePathAndName, int paddingLength, long position, boolean EOF) {
+
+        byte[] dataAtPosition = new byte[paddingLength];
+        try {
+            RandomAccessFile hugeFile = new RandomAccessFile(new File(filePathAndName), "r");
+
+            //if True, it seeks to EOF - Length of Bytes, otherwise it seeks to where you want to go
+            hugeFile.seek((EOF) ? hugeFile.length() - paddingLength : position);
+
+            //Reads the data at the position, size is dependant on paddingLength
+            hugeFile.read(dataAtPosition, 0, paddingLength);
+            hugeFile.close();
+
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+        return dataAtPosition;
+    }
+
+    /**
+     *
      * @param buffer          - Needs a byte array of a file
      * @param filePathAndName - Name of the file to be written
      * @param encryptFlag     - Is the file going encrypted (True) or decrypted? (False)
@@ -104,30 +130,81 @@ public class Utilities {
             else
                 Files.write(Paths.get(filePathAndName), buffer, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            String newFilePathAndName = "";
-
-            //encryptFlag otherwise, decrypts true then encrypt, ot
-            if (encryptFlag) {
-                //Check if file path + file name < 255
-                if (Utilities.isNewExtensionPossible(filePathAndName))
-                    newFilePathAndName = Utilities.setEncryptedExtension(filePathAndName);
-            }
-            else {
-                newFilePathAndName = Utilities.setNormalExtension(filePathAndName);
-            }
-
-            File oldFile = new File(filePathAndName);
-            File newFile = new File(newFilePathAndName);
-
-            if (newFile.exists())
-                deleteFile(newFile.toString());
-
-            oldFile.renameTo(newFile);
-
+            setExtension(filePathAndName, encryptFlag);
 
         } catch(IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Writes data at either EOF or position chosen
+     * @param buffer          - Needs a byte array of a file
+     * @param filePathAndName - Name of the file to be written
+     * @param position        - Traverse the file to position indicated
+     * @param EOF             - If True, it seeks to EOF otherwise,
+     *                                   it seeks to the position
+     * @param encryptFlag     - If True, sets extension to encrypt, otherwise decrypt
+     */
+    public static void writeDataAtOffset(byte[] buffer, String filePathAndName,
+                                         long position, boolean EOF, boolean encryptFlag) {
+
+        try {
+                RandomAccessFile hugeFile = new RandomAccessFile(new File(filePathAndName), "rw");
+                hugeFile.seek(EOF ? hugeFile.length() : position);
+                hugeFile.write(buffer);
+                hugeFile.close();
+
+                setExtension(filePathAndName, encryptFlag);
+
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Function will truncate file based on size of IV + padding in bytes
+     * @param ivWithPadding              - pass the iv WITH padding
+     * @param filePathAndName - name of file
+     */
+    public static void truncateDataAtEOF(byte[] ivWithPadding, String filePathAndName){
+        try {
+            RandomAccessFile hugeFile = new RandomAccessFile(new File(filePathAndName), "rw");
+            hugeFile.seek(hugeFile.length());
+            hugeFile.setLength(hugeFile.length() - ivWithPadding.length);
+            hugeFile.close();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void setExtension(String filePathAndName, boolean encryptFlag){
+
+        String newFilePathAndName = "";
+
+        //encryptFlag , if true then encrypt, otherwise normal extension
+        if (encryptFlag) {
+            //Check if file path + file name < 255
+            if (Utilities.isNewExtensionPossible(filePathAndName))
+                newFilePathAndName = Utilities.setEncryptedExtension(filePathAndName);
+//            else {
+//                File newFile = new File(newFilePathAndName);
+//                Path originalLocation = Paths.get(newFilePathAndName);
+//                Path parentLocation = originalLocation.getParent();
+//                //Move file to parent location
+//            }
+        }
+        else {
+            newFilePathAndName = Utilities.setNormalExtension(filePathAndName);
+        }
+
+        File oldFile = new File(filePathAndName);
+        File newFile = new File(newFilePathAndName);
+
+        if (newFile.exists())
+            deleteFile(newFile.toString());
+
+        oldFile.renameTo(newFile);
     }
 
     /**
@@ -142,6 +219,8 @@ public class Utilities {
             e.printStackTrace();
         }
     }
+
+
 
     /**
      *
