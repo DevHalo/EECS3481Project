@@ -27,20 +27,22 @@ public class Utilities {
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 249;
 
-
-    private static final int MAX_FILE_SIZE = Integer.MAX_VALUE - 16;
+    // 2 GB = 2147483648 Bytes == Int.MAX_VAL - 1
+    // Set MAX to multiple of 128
+    private static final int MAX_FILE_SIZE = Integer.MAX_VALUE - 127;
 
     /**
      *
-     * @param bytes         - Initial seed for Initialization Vector (IV)
      * @param byteLength    - Ciphers require have different length of IV
      *                        For AES 128/192/256 Bit = 16/24/32 Bytes
      *                        For Blowfish = 8 Bytes
      * @return              - returns IV of byteLength
      */
-    public static byte[] getIV(byte[] bytes, int byteLength) {
+    public static byte[] getIV(int byteLength) {
         byte iv[] = new byte[byteLength];
-        java.security.SecureRandom ivGenerator =  new SecureRandom(bytes);
+        byte seed[] = (new SecureRandom()).generateSeed(byteLength);
+
+        SecureRandom ivGenerator =  new SecureRandom(seed);
         ivGenerator.nextBytes(iv);
         return iv;
     }
@@ -144,18 +146,15 @@ public class Utilities {
      * @param position        - Traverse the file to position indicated
      * @param EOF             - If True, it seeks to EOF otherwise,
      *                                   it seeks to the position
-     * @param encryptFlag     - If True, sets extension to encrypt, otherwise decrypt
      */
     public static void writeDataAtOffset(byte[] buffer, String filePathAndName,
-                                         long position, boolean EOF, boolean encryptFlag) {
+                                         long position, boolean EOF) {
 
         try {
                 RandomAccessFile hugeFile = new RandomAccessFile(new File(filePathAndName), "rw");
                 hugeFile.seek(EOF ? hugeFile.length() : position);
                 hugeFile.write(buffer);
                 hugeFile.close();
-
-                setExtension(filePathAndName, encryptFlag);
 
         } catch(IOException e) {
             e.printStackTrace();
