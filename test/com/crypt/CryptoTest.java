@@ -253,14 +253,14 @@ public class CryptoTest {
             // Test parameters include:
             // Encryption and Decryption of each file in the test folder, using XOR. User confirmation is skipped.
             assertDoesNotThrow(() ->
-                    Main.main(new String[]{"-encrypt", "-i", fileName.getAbsolutePath(), "-xor", "-f"}));
+                    Main.main(new String[]{"-encrypt", "-i", fileName.getAbsolutePath(), "-xor", key, "-f"}));
 
             VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
                     md5s[i], true);
 
             assertDoesNotThrow(() ->
                     Main.main(new String[]{"-decrypt", "-i", fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION,
-                            "-xor", "-f"}));
+                            "-xor", key, "-f"}));
 
             VerifyMD5(fileName, md5s[i], false);
         }
