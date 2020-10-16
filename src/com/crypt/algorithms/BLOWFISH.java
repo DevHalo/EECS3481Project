@@ -28,7 +28,7 @@ public class BLOWFISH {
 
             int blowBlockSize = blowfish.getBlockSize();
             byte[] toEncrypt = Utilities.readFile(filePath);
-            byte[] iv = Utilities.getIV((new SecureRandom()).generateSeed(blowBlockSize), blowBlockSize);
+            byte[] iv = Utilities.getIV(blowBlockSize);
 
             SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -56,7 +56,7 @@ public class BLOWFISH {
             padAndIV[0] = (byte) numPadding;
 
             Utilities.writeFile(encrypted, filePath, Utilities.ENCRYPT);
-            Utilities.writeDataAtOffset(padAndIV, filePath + Utilities.ENCRYPTED_EXTENSION, 0, true, true);
+            Utilities.writeDataAtOffset(padAndIV, filePath + Utilities.ENCRYPTED_EXTENSION, 0, true);
 
         } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
                 InvalidAlgorithmParameterException | InvalidKeyException e) {
