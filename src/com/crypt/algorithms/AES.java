@@ -1,139 +1,136 @@
 package com.crypt.algorithms;
-// import sun.security.krb5.KrbCryptoException;
+
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.*;
+import javax.swing.plaf.synth.SynthTextAreaUI;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import java.util.Arrays;
 
-/* Implementation of the AES algorithm */
-/* The Advanced Encryption Standard is a standard encryption and decryption
- * Algorithm  that have been approved by the U.S. National Institute of Standards
- * and Technology in 2001. It's more secure than the previous standard DES (Data
- * Encryption Standard). AES is listed under the symmetric encryption methods.
- * Symmetric Encryption refers to algorithms that use the same key for encryption
- * as well as decryption. As such, the key should be kept secret and must be
- * exchanged between the encryptor and decryptor using a secure channel.
- * The AES processes block of 128 bits using a secret key of 128, 192, or 256 bits. */
+
+// Implementation of the AES algorithm
 public class AES {
 
-    private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES";
+    public static void crypt(String filePath, byte[] key, boolean isEncryption) {
+        if (isEncryption) encrypt(filePath, key);
+        else decrypt(filePath, key);
 
-    private static final String KEY = "AABBCCDDEEFFGGHH";
-    private static final String IV = "AAACCCDDDYYUURRS";
+    }
+    private static void encrypt(String filePath, byte[] key)  {
 
-    public static String readFile(String fileName) throws Exception {
-        BufferedReader buffer = new BufferedReader(new FileReader(fileName));
         try {
-            StringBuilder string = new StringBuilder();
-            String row = buffer.readLine();
-            while (row != null) {
-                string.append(row);
-                string.append(System.lineSeparator());
-                row = buffer.readLine();
+
+            Cipher aes = Cipher.getInstance("AES/CBC/NoPadding");
+
+            int aesBlockSize = aes.getBlockSize();
+            byte[] toEncrypt = Utilities.readFile(filePath);
+            byte[] iv = Utilities.getIV(aesBlockSize);
+
+            // AES keys must be of size 16, 24, or 32
+            byte[] keyMod = fixKey(key);
+
+            SecretKeySpec keySpec = new SecretKeySpec(keyMod, "AES");
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            aes.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
+
+            int numPadding = aesBlockSize - (toEncrypt.length % aesBlockSize);
+            if (numPadding == aesBlockSize) numPadding = 0;
+
+            // Copy input into pad-sized array. If it wasn't padded, we don't need to copy.
+            byte[] paddedToEncrypt;
+            if (numPadding == 0) {
+                paddedToEncrypt = toEncrypt;
+            } else {
+                paddedToEncrypt = new byte[toEncrypt.length + numPadding];
+                System.arraycopy(toEncrypt, 0, paddedToEncrypt, 0, toEncrypt.length);
             }
-            String all = string.toString();
-            return all;
-        } finally {
-            buffer.close();
+
+            // Do encryption
+            byte[] encrypted = aes.doFinal(paddedToEncrypt);
+
+            // write encrypted text to file then append to EOF the number of padding used followed by the IV used
+            byte[] padAndIV = new byte[1 + iv.length];
+            System.arraycopy(iv, 0, padAndIV, 1, iv.length);
+            padAndIV[0] = (byte) numPadding;
+
+            Utilities.writeFile(encrypted, filePath, Utilities.ENCRYPT);
+            Utilities.writeDataAtOffset(padAndIV, filePath + Utilities.ENCRYPTED_EXTENSION, 0, true);
+
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
+                InvalidAlgorithmParameterException | InvalidKeyException e) {
+            System.out.println("Encryption failed");
+            e.printStackTrace();
         }
     }
 
-    /*** AES Encryption ***/
-    public static String encryptAES(String key, String iv, String message) throws Exception {
-        byte[] bytesofKey = key.getBytes("UTF-8");
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] keyBytes = md.digest(bytesofKey);
-        final byte[] ivByte = iv.getBytes();
+    private static void decrypt(String filePath, byte[] key) {
 
-        /*** Creating a Key from a given byte array to AES Algorithm ***/
-        SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
-
-        /*** The instance of Cipher class for a given algorithm transformation ***/
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(ivByte));
-
-        /*** Invoke the doFinal method from the Cipher class to perform encryption or
-         * decryption on the input bytes ***/
-        final byte[] result = cipher.doFinal(message.getBytes());
-        /*** Input length must be multiple of 16 when decrypting so we use
-         * Base64 library ***/
-        return Base64.getMimeEncoder().encodeToString(result);
-    }
-
-    /*** AES Decryption ***/
-    public static String decryptAES(String key, String iv, String encrypted) throws Exception {
-        byte[] bytesofKey = key.getBytes("UTF-8");
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] keyBytes = md.digest(bytesofKey);
-
-        final byte[] ivByte = iv.getBytes();
-        final byte[] encryptedBytes = Base64.getMimeDecoder().decode(encrypted);
-
-        SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, new IvParameterSpec(ivByte));
-        final byte[] result = cipher.doFinal(encryptedBytes);
-        return new String(result);
-    }
-
-    private static void doCrypto(int cipherMode, String key, File inputFile, File outputFile) throws Exception {
         try {
-            /*** Creating a Key from a given byte array to a given Algorithm ***/
-            Key secretKey = new SecretKeySpec(key.getBytes(), ALGORITHM);
+            Cipher aes = Cipher.getInstance("AES/CBC/NoPadding");
 
-            /*** The instance of Cipher class for a given algorithm transformation ***/
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            cipher.init(cipherMode, secretKey);
+            int aesBlockSize = aes.getBlockSize();
 
-            /*** Obtain the input bytes from the file using Java FileInputStream class ***/
-            FileInputStream inputStream = new FileInputStream(inputFile);
-            byte[] inputBytes = new byte[(int) inputFile.length()];
-            inputStream.read(inputBytes);
+            // Read num of padding and IV from the EOF, then truncate
+            byte[] padAndIV = Utilities.readDataAtOffset(filePath, (1 + aesBlockSize), 0, true);
 
-            /*** Invoke the doFinal method from the Cipher class to perform encryption or
-             * decryption on the input bytes ***/
-            byte[] outputBytes = cipher.doFinal(inputBytes);
+            int numPadding = padAndIV[0] & 0xFF;
+            byte[] iv = new byte[aesBlockSize];
+            System.arraycopy(padAndIV, 1, iv, 0, iv.length);
 
-            /*** Write the data to a file using Java FileOutputStream class ***/
-            FileOutputStream outputStream = new FileOutputStream(outputFile);
-            outputStream.write(outputBytes);
+            Utilities.truncateDataAtEOF(padAndIV, filePath);
 
-            inputStream.close();
-            outputStream.close();
+            // AES keys must be of size 16, 24, or 32
+            byte[] keyMod = fixKey(key);
 
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException
-                | IOException | IllegalBlockSizeException | BadPaddingException ex) {
-            throw new Exception("Error Encryption/Decrypting File", ex);
+            SecretKeySpec keySpec = new SecretKeySpec(keyMod, "AES");
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+
+            // Do decryption
+            byte[] toDecrypt = Utilities.readFile(filePath);
+            aes.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
+            byte[] decrypted = aes.doFinal(toDecrypt);
+
+            // Un-pad if necessary
+            byte[] decryptedUnpadded;
+            if (numPadding == 0) {
+                decryptedUnpadded = decrypted;
+            } else {
+                decryptedUnpadded = new byte[decrypted.length - numPadding];
+                System.arraycopy(decrypted, 0, decryptedUnpadded, 0, decryptedUnpadded.length);
+            }
+
+            Utilities.writeFile(decryptedUnpadded, filePath, Utilities.DECRYPT);
+
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
+                InvalidAlgorithmParameterException | InvalidKeyException e) {
+            System.out.println("Decryption failed");
+            e.printStackTrace();
         }
     }
 
-    public static void encryptAES(String key, File inputFile, File outputFile) throws Exception {
-        doCrypto(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
-    }
+    /**
+     * Simple key fix
+     * @param key key of unknown length
+     * @return new key of size 16, 24, or 32 bytes
+     *        - Keys of smaller size are repeated to match up to closer size.
+     *        - Keys of size > 32 bytes are truncated to 32
+     */
+    private static byte[] fixKey(byte[] key) {
+        if (key.length == 16 || key.length == 24 || key.length == 32) return key;
+        if (key.length > 32) return Arrays.copyOfRange(key, 0, 32);
 
-    public static void decryptAES(String key, File inputFile, File outputFile) throws Exception {
-        doCrypto(Cipher.DECRYPT_MODE, key, inputFile, outputFile);
-    }
+        byte[] fixedKey;
 
-    public static void test_encrypt_decrypt() throws Exception {
-        /*** Encrypt the input file "test_text.txt" to another file "output.txt" ***/
-        String s = readFile("test_text.txt");
-        String res = encryptAES("mykey", IV, s);
-        PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
-        writer.print(res);
-        writer.close();
+        if (key.length < 16) fixedKey = new byte[16];
+        else if (key.length < 24) fixedKey = new byte[24];
+        else fixedKey = new byte[32];
 
-        /*** Decrypt the output file "output.txt" to another file "output2.txt" ***/
-        s = readFile("output.txt");
-        res = decryptAES("mykey", IV, s);
-        writer = new PrintWriter("output2.txt", "UTF-8");
-        writer.print(res);
-        writer.close();
+        System.arraycopy(key, 0, fixedKey, 0, key.length);
+        System.arraycopy(key, 0, fixedKey, key.length, fixedKey.length - key.length);
+
+        return fixedKey;
     }
 }
