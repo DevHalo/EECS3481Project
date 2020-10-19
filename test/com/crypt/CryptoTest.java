@@ -2,6 +2,7 @@ package com.crypt;
 
 import java.io.*;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import java.security.MessageDigest;
@@ -209,16 +210,16 @@ public class CryptoTest {
     }
 
     /**
-     * Tests the Blowfish encryption and decryption algorithm
+     * Tests the AES encryption and decryption algorithm
      */
     @Test
-    @DisplayName("Blowfish Encryption and Decryption Test")
-    void BlowfishTest() {
+    @DisplayName("AEX Encryption and Decryption Test")
+    void AESTest() {
         for (int i = 0; i < testFiles.length; i++) {
             File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
 
             try {
-                BLOWFISH.crypt(fileName.toString(), key.getBytes("UTF-8"), Utilities.ENCRYPT);
+                AES.crypt(fileName.toString(), key.getBytes(StandardCharsets.UTF_8), Utilities.ENCRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to encrypt file " + fileName.toString());
@@ -228,7 +229,38 @@ public class CryptoTest {
                     md5s[i], true);
 
             try {
-                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes("UTF-8"), Utilities.DECRYPT);
+                AES.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                        key.getBytes(StandardCharsets.UTF_8), Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifyMD5(fileName, md5s[i], false);
+        }
+    }
+
+    /**
+     * Tests the Blowfish encryption and decryption algorithm
+     */
+    @Test
+    @DisplayName("Blowfish Encryption and Decryption Test")
+    void BlowfishTest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+            try {
+                BLOWFISH.crypt(fileName.toString(), key.getBytes(StandardCharsets.UTF_8), Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    md5s[i], true);
+
+            try {
+                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                        key.getBytes(StandardCharsets.UTF_8), Utilities.DECRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to decrypt file " + fileName.toString());
