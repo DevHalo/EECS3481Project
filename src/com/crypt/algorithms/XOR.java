@@ -18,7 +18,12 @@ public class XOR {
         something.jar XOR "MMAAD" true
     */
 
-
+    /**
+     * xorFile takes 3 inputs which lets it either encrypt or decrypt a file based on the key
+     * @param filePathAndName - Takes a folder and filename as input
+     * @param keyBytes        - Takes a key of any given size and encrypts/decrypts the file
+     * @param flag            - {true = encrypt | false = decrypt}, used for encrypting file
+     */
     public static void xorFile(String filePathAndName, byte[] keyBytes, boolean flag) {
         try {
 
