@@ -1,8 +1,6 @@
 package com.crypt;
 
-import com.crypt.algorithms.RC4;
-import com.crypt.algorithms.XOR;
-import com.crypt.algorithms.Utilities;
+import com.crypt.algorithms.*;
 
 import java.io.File;
 import java.util.*;
@@ -160,12 +158,16 @@ public class Main {
                                 XOR.xorFile(f.getAbsolutePath(), xor_key.getBytes(), encrypt);
                                 break;
                             case "-AES":
+                                String aes_key = args[algoIndex];
+                                AES.crypt(f.getAbsolutePath(), aes_key.getBytes(), encrypt);
                                 break;
                             case "-RC4":
                                 String rc4_key = args[algoIndex];
                                 RC4.crypt(f.getAbsolutePath(), rc4_key.getBytes(), encrypt);
                                 break;
                             case "-BLOWFISH":
+                                String blowfish_key = args[algoIndex];
+                                BLOWFISH.crypt(f.getAbsolutePath(), blowfish_key.getBytes(), encrypt);
                                 break;
                             case "-RSA":
                                 break;
