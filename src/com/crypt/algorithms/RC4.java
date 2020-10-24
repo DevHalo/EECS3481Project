@@ -11,12 +11,13 @@ public class RC4 {
      */
     public static void crypt(String fileName, byte[] startingKey, boolean encrypt) {
         try {
+            // Read input bytes from file and initialize output array
             byte[] input = Utilities.readFile(fileName);
             byte[] output = new byte[input.length];
 
             int i = 0, j = 0, plaintextIndex = 0;
 
-            // Initalize permutation of S
+            // Initialize permutation of S. Starting key is no longer used after this point
             byte[] S = RC4.initalize(startingKey);
 
             // Stream Generation
