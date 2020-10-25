@@ -24,7 +24,7 @@ public class XOR {
      * @param keyBytes        - Takes a key of any given size and encrypts/decrypts the file
      * @param flag            - {true = encrypt | false = decrypt}, used for encrypting file
      */
-    public static void xorFile(String filePathAndName, byte[] keyBytes, boolean flag) {
+    public static void crypt(String filePathAndName, byte[] keyBytes, boolean flag) {
         try {
 
             byte[] bytesToXOR = Utilities.readFile(filePathAndName);

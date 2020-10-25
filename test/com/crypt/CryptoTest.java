@@ -157,7 +157,7 @@ public class CryptoTest {
 
             // Encrypt file here
             try {
-                XOR.xorFile(fileName.toString(), key.getBytes(), true);
+                XOR.crypt(fileName.toString(), key.getBytes(), true);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to encrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
@@ -168,7 +168,7 @@ public class CryptoTest {
 
             // Decrypt file here
             try {
-                XOR.xorFile(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                XOR.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
                         key.getBytes(), false);
             } catch (Exception e) {
                 e.printStackTrace();

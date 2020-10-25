@@ -16,17 +16,12 @@ public class Main {
         switch (args.length) {
             case 0:
                 // If user supplies no arguments, show basic usage and option for more information
-                System.out.println("Usage:\n-encrypt/-decrypt -input <file/folder> -<algorithm> " +
-                        "<n tuple secrets>\nExample: -encrypt -input test.txt -xor ABCDEFG\n\n" +
-                        "Use -help for more info, -commands to see all commands, and -help-algos to see a" +
-                        " list of algorithms.");
+                generalRequirements();
                 break;
             case 1:
                 // General help menu
                 if (args[0].toUpperCase().equals("-HELP")) {
                     System.out.println("To see the supported algorithms, type -help-algos.\n" +
-                            "To see more information about a specific algorithm, type -help-algos <algorithm> " +
-                            "(-help-algos xor). The algorithm name is case-insensitive.\n" +
                             "By default, the program will ask for user confirmation before executing.\n" +
                             "You can skip this by using -force or -f.\n" +
                             "-dry will run the program, " +
@@ -36,60 +31,18 @@ public class Main {
                     System.out.printf("When encrypting files, the extension %1$s will be appended to the file name. " +
                             "(test.txt%1$s)\n", Utilities.ENCRYPTED_EXTENSION);
                 } else if (args[0].toUpperCase().equals("-HELP-ALGOS")) {
-                    System.out.println("The application supports the following algorithms:\n\n--Symmetric--\n" +
-                            "XOR\nAES\nRC4\nBLOWFISH\n\n--Asymmetric\nRSA\nECC");
-                } else if (args[0].toUpperCase().equals("-COMMANDS")) {
-                    System.out.println("The application supports the following commands:\n");
-                    System.out.printf("%-32s | %s\n", "-input / -i <file/folder>",
-                            "Specify an input file or folder of files.");
-                    System.out.printf("%-32s | %s\n", "-encrypt / -decrypt", "Specify encryption or decryption mode.");
-                    System.out.printf("%-32s | %s\n", "-<algorithm> <secrets>", "Specify the algorithm to be used. See" +
-                            " -help-algos for more details on what algorithms you can use.");
-                    System.out.printf("%-32s | %s\n", "-force / -f", "Skips the confirmation prompt before the" +
-                            " algorithm is executed.");
-                    System.out.printf("%-32s | %s\n", "-dry", "The application will execute, but not encrypt/decrypt" +
-                            " any of the actual files.");
+                    System.out.println("The application supports the following algorithms:\n"+
+                    "+-----------+------------+\n" +
+                    "| Symmetric | Asymmetric |\n" +
+                    "+-----------+------------+\n" +
+                    "| AES       | ECC        |\n" +
+                    "| BLOWFISH  | RSA        |\n" +
+                    "| RC4       |            |\n" +
+                    "| XOR       |            |\n" +
+                    "+-----------+------------+");
+                    generalRequirements();
+                    keyRequirements("", "", 1, Integer.MAX_VALUE - 1, 99);
                 } else System.out.println("Not enough parameters. Did you mean -help?");
-                break;
-            case 2:
-                // Show help menu for algorithms
-                if (args[0].toUpperCase().equals("-HELP-ALGOS") ||
-                    args[0].toUpperCase().equals("-HELP")) {
-                    // TODO: write required secrets the user must enter to use for each algorithm
-                    switch (args[1].toUpperCase()) {
-                        case "XOR":
-                            System.out.println("XOR only requires a byte key. Supply your key as a string.\n" +
-                                    "Example: -xor MYKEY123");
-                            break;
-                        case "AES":
-                            System.out.println("AES only requires a byte key. Supply your key as a string.\n" +
-                                    "The key must be 128-bit, 192-bit, or 256-bit (16, 24, or 32 characters).\n" +
-                                    "Example: -aes ABCDEF123456abcdef");
-                            break;
-                        case "RC4":
-                            System.out.println("RC4 only requires a byte key. Supply your key as a string.\n" +
-                                    "The key must be at least 8 bits to a maximum of 2048 bits (1 character to a" +
-                                    " maximum of 256 characters)\n" +
-                                    "Example: -rc4 MYKEY123");
-                            break;
-                        case "BLOWFISH":
-                            System.out.println("Blowfish only requires a byte key. Supply your key as a string.\n" +
-                                    "The key must be at least 32 bits to a maximum of 448 bits " +
-                                    "(4 characters up to a maximum of 56 characters)\n" +
-                                    "Example: -blowfish MYKEY123");
-                            break;
-                        case "RSA":
-                            System.out.println("To be implemented.");
-                            break;
-                        case "ECC":
-                            System.out.println("To be implemented.");
-                            break;
-                        default:
-                            System.out.println("Not enough parameters or" +
-                                    " algorithm does not exist. Did you mean -help-algos <algorithm>?");
-                            break;
-                    }
-                } else System.out.println("Not enough parameters or malformed input. See -help for details.");
                 break;
             default:
                 // Encrypt or Decrypt
@@ -170,9 +123,10 @@ public class Main {
                                     encrypt ? "encrypted." : "decrypted.");
                             continue;
                         }
-
-                        System.out.printf("The file %s is about to be %s%n",
-                                f.getName(), encrypt ? "encrypted." : "decrypted.");
+                        else {
+                            System.out.printf("The file %s is about to be %s%n",
+                                    f.getName(), encrypt ? "encrypted." : "decrypted.");
+                        }
 
                         if (dry) {
                             System.out.println("-dry was selected. Skipping algorithm execution.");
@@ -205,51 +159,30 @@ public class Main {
                         // TODO: Parse input for each algorithm
                         // Note: Reaching this switch statement only guarantees at least one secret is supplied.
                         // Must implement checks for algorithms that require more than 1 secret.
+
+                        String key = args[algoIndex];
                         switch (algorithm) {
-                            case "-XOR":
-                                String xor_key = args[algoIndex];
-
-                                if (xor_key.length() < 1) {
-                                    System.out.println("You need a key with at least 1 character.");
-                                    return;
-                                }
-
-                                XOR.xorFile(f.getAbsolutePath(), xor_key.getBytes(), encrypt);
-                                break;
                             case "-AES":
-                                String aes_key = args[algoIndex];
-
-                                // Check if key is 128-bit, 192-bit, or 256-bit
-                                if (aes_key.length() != 16 && aes_key.length() != 24 && aes_key.length() != 32) {
-                                    System.out.println("Key must be 128-bit, 192-bit, or 256-bit.");
-                                    return;
-                                }
-
-                                AES.crypt(f.getAbsolutePath(), aes_key.getBytes(), encrypt);
-                                break;
-                            case "-RC4":
-                                String rc4_key = args[algoIndex];
-
-                                if (rc4_key.length() < 1 || rc4_key.length() > 256) {
-                                    System.out.println("Key must be 8-bits to 2048-bits long.");
-                                    return;
-                                }
-
-                                RC4.crypt(f.getAbsolutePath(), rc4_key.getBytes(), encrypt);
+                                keyRequirements(algorithm, key, 1, Integer.MAX_VALUE - 1, 2);
+                                AES.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
                                 break;
                             case "-BLOWFISH":
-                                String blowfish_key = args[algoIndex];
-
-                                if (blowfish_key.length() < 4 || blowfish_key.length() > 56) {
-                                    System.out.println("Key must be at 32-bits to 448-bits long.");
-                                    return;
-                                }
-
-                                BLOWFISH.crypt(f.getAbsolutePath(), blowfish_key.getBytes(), encrypt);
+                                keyRequirements(algorithm, key, 8, 2048, 3);
+                                BLOWFISH.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                break;
+                            case "-RC4":
+                                keyRequirements(algorithm, key, 1, 256, 4);
+                                RC4.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                break;
+                            case "-XOR":
+                                keyRequirements(algorithm, key, 1, Integer.MAX_VALUE - 1, 5);
+                                XOR.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
                                 break;
                             case "-RSA":
+                                /*To be implemented */
                                 break;
                             case "-ECC":
+                                /*To be implemented */
                                 break;
                         }
 
@@ -264,6 +197,53 @@ public class Main {
                 System.out.println("Application exiting.");
                 break;
         }
+    }
+
+    private static void keyRequirements(String algorithm, String key, int min, int max, int stringIndex) {
+        String[] keyText =
+                {"+----------+---------------------+-------------+---------------------------------------------------------------------+\n",
+                "| Cipher   | Min / Exact (bytes) | Max (bytes) |                            Requirements                             |\n",
+                "| AES      |                          16/24/32 | Key must be exactly 10, 14, or 16 bytes (128, 192, 256 bits)        |\n",
+                "| Blowfish |                   8 |        2048 | Key must be between 8-2048 bytes (32-442 bits)                      |\n",
+                "| RC4      |                   1 |         256 | Key must be between 1-256 bytes (8-2048 bits)                       |\n",
+                "| XOR      |                   1 |           n | Key must be between 1-n bytes (1-n bits)                            |\n",
+                "| RSA      |                  64 |           n | Key must be between 64-n bytes (512-n bits)                         |\n",
+                "| ECC      |                 163 |           n | Key must be between 512-n bytes (1024  bit - n  RSA/DSA equivalent) |\n"};
+
+        if ((algorithm.toUpperCase().matches("-XOR|-RC4|-BLOWFISH|-RSA|-ECC") && (key.length() < min || key.length() > max)) ||
+                (algorithm.equals("-AES") && key.length() != 16 && key.length() != 24 && key.length() != 32) || key.toUpperCase().equals("-INPUT"))  {
+            System.out.println(keyText[0] + keyText[1] + keyText[0] + keyText[stringIndex] + keyText[0]);
+            System.exit(0);
+        }
+        else if (stringIndex == 99)
+        {
+            System.out.println(keyText[0] + keyText[1] + keyText[0]);
+            for (int i = 2; i < keyText.length; i++)
+                System.out.println(keyText[i]);
+            System.out.println(keyText[0]);
+            System.exit(0);
+        }
+    }
+
+    private static void generalRequirements() {
+        String text =
+        "+-----------+----------------+------------------+--------------------+-----------------+\n" +
+        "|  Cipher   |      Key       |     -input       |    -encrypt or     |   force flag    |\n" +
+        "|           |  (in bytes)    |  File or Folder  |    -decrypt        |       -f        |\n" +
+        "+-----------+----------------+------------------+--------------------+-----------------+\n" +
+        "| -AES      |       10/14/16 | text.txt         | Specify encryption | Skips           |\n" +
+        "| -Blowfish |         8-2048 | ./Samples        | or decryption      | confirmation    |\n" +
+        "| -RC4      |          1-256 |                  |                    | mode before the |\n" +
+        "| -XOR      |            1-n |                  |                    | algorithm is    |\n" +
+        "| -RSA      |           64-n |                  |                    | executed        |\n" +
+        "| -ECC      |          163-n |                  |                    |                 |\n" +
+        "+-----------+----------------+------------------+--------------------+-----------------+\n" +
+        "| Example:  -AES 0123456789ABCDEF -input test.txt -encrypt -f                          |\n" +
+        "|           -AES 0123456789ABCDEF -input test.txt -decrypt -f                          |\n" +
+        "+----------+-----------------+------------------+--------------------+----------- -----+";
+
+        System.out.println(text);
+        System.exit(0);
     }
 
     /**
