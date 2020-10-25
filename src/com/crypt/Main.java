@@ -231,7 +231,7 @@ public class Main {
         "|  Cipher   |      Key       |     -input       |    -encrypt or     |   force flag    |\n" +
         "|           |  (in bytes)    |  File or Folder  |    -decrypt        |       -f        |\n" +
         "+-----------+----------------+------------------+--------------------+-----------------+\n" +
-        "| -AES      |       10/14/16 | text.txt         | Specify encryption | Skips           |\n" +
+        "| -AES      |       16/24/32 | text.txt         | Specify encryption | Skips           |\n" +
         "| -Blowfish |         8-2048 | ./Samples        | or decryption      | confirmation    |\n" +
         "| -RC4      |          1-256 |                  |                    | mode before the |\n" +
         "| -XOR      |            1-n |                  |                    | algorithm is    |\n" +
@@ -241,7 +241,6 @@ public class Main {
         "| Example:  -AES 0123456789ABCDEF -input test.txt -encrypt -f                          |\n" +
         "|           -AES 0123456789ABCDEF -input test.txt -decrypt -f                          |\n" +
         "+----------+-----------------+------------------+--------------------+----------- -----+";
-
         System.out.println(text);
         System.exit(0);
     }
