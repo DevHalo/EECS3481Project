@@ -302,4 +302,54 @@ public class Utilities {
 
         return buffer;
     }
+
+    /**
+     * Performs the specified cipher algorithm
+     * @param algorithm Algorithm to use
+     * @param fName String file name
+     * @param key Key stream in bytes
+     * @param encrypt Encryption or decryption mode
+     */
+    public static void cryptSymmetric(String algorithm, String fName, byte[] key, boolean encrypt) {
+        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
+
+        switch (algorithm) {
+            case "AES":
+                AES.crypt(fName, key, encrypt);
+                break;
+            case "BLOWFISH":
+                BLOWFISH.crypt(fName, key, encrypt);
+                break;
+            case "RC4":
+                RC4.crypt(fName, key, encrypt);
+                break;
+            case "XOR":
+                XOR.crypt(fName, key, encrypt);
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+    }
+
+    /**
+     * Performs the specified asymmetric cipher.
+     * TODO
+     * @param algorithm
+     */
+    public static void cryptAsymmetric(String algorithm) {
+        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
+        // TODO: asymmetric
+        // Note: Must implement checks for algorithms that require more than 1 secret.
+
+        throw new IllegalArgumentException();
+    }
+
+    /**
+     * Returns true if the specified algorithm is symmetric
+     * @param algorithm
+     * @return
+     */
+    public static boolean isSymmetric(String algorithm) {
+        return algorithm.matches("[-]?AES|[-]?XOR|[-]?BLOWFISH|[-]?RC4");
+    }
 }
