@@ -19,7 +19,7 @@ import java.util.Random;
 public class CryptoTest {
 
     private File[] testFiles;
-    private String[] md5s;
+    private String[] sha1s;
 
     private final String WORKING_DIRECTORY = System.getProperty("user.dir") + "/out/test/EECS3481Project/";
     private String key;
@@ -43,7 +43,7 @@ public class CryptoTest {
     }
 
     /**
-     * Converts MD5 checksum to hexadecimal string
+     * Converts SHA1 checksum to hexadecimal string
      */
     String ByteToHexString(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
@@ -56,7 +56,6 @@ public class CryptoTest {
 
     /**
      * Generates a pseudorandom alphanumeric key of length bytes
-     *
      * @param bytes Length of the key in number of bytes
      */
     void GenerateKey(int bytes) {
@@ -73,27 +72,27 @@ public class CryptoTest {
     }
 
     /**
-     * Generates a MD5 hash from reading a target file. Test will fail if
-     * the MD5 generated from this file does not match the supplied source MD5.
+     * Generates a SHA1 hash from reading a target file. Test will fail if
+     * the SHA1 generated from this file does not match the supplied source SHA1.
      *
      * @param fileName  Path object to the file to be checked
-     * @param sourceMD5 String representation of the MD5 hash
-     * @param diff      If true, the method will assert if the MD5s are supposed to be different
+     * @param sourceSHA1 String representation of the SHA1 hash
+     * @param diff      If true, the method will assert if the SHA1s are supposed to be different
      */
-    void VerifyMD5(File fileName, String sourceMD5, boolean diff) {
+    void VerifySHA1(File fileName, String sourceSHA1, boolean diff) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA1");
             md.reset();
 
             byte[] fileBytes = Files.readAllBytes(fileName.toPath());
 
             if (diff) {
-                assertNotEquals(sourceMD5, ByteToHexString(md.digest(fileBytes)));
+                assertNotEquals(sourceSHA1, ByteToHexString(md.digest(fileBytes)));
             } else {
-                assertEquals(sourceMD5, ByteToHexString(md.digest(fileBytes)));
+                assertEquals(sourceSHA1, ByteToHexString(md.digest(fileBytes)));
             }
         } catch (NoSuchAlgorithmException e) {
-            fail("System does not support MD5. Test can not be completed.");
+            fail("System does not support SHA1. Test can not be completed.");
         } catch (IOException e) {
             fail("Failed to read output file: " + fileName.getName());
         }
@@ -108,7 +107,7 @@ public class CryptoTest {
         testFiles = resourcesDirectory.listFiles();
 
         assertNotNull(testFiles);
-        md5s = new String[testFiles.length];
+        sha1s = new String[testFiles.length];
 
         System.out.println("Moving test files to working directory...");
 
@@ -116,7 +115,7 @@ public class CryptoTest {
             System.out.printf("Moving file: %s to: %s%s%n", testFiles[i].getName(),
                     WORKING_DIRECTORY, testFiles[i].getName());
 
-            // Copy files from test folder to working directory, then calculate MD5 from original file.
+            // Copy files from test folder to working directory, then calculate SHA1 from original file.
             try {
                 byte[] in = Files.readAllBytes(testFiles[i].toPath());
 
@@ -126,16 +125,16 @@ public class CryptoTest {
                 out.write(in);
                 out.close();
 
-                MessageDigest md = MessageDigest.getInstance("MD5");
+                MessageDigest md = MessageDigest.getInstance("SHA1");
                 md.reset();
 
-                md5s[i] = ByteToHexString(md.digest(in));
+                sha1s[i] = ByteToHexString(md.digest(in));
 
-                System.out.printf("FILE NAME: %s | MD5 CHECKSUM:%n%s%n", testFiles[i].getName(), md5s[i]);
+                System.out.printf("FILE NAME: %s | SHA1 CHECKSUM:%n%s%n", testFiles[i].getName(), sha1s[i]);
             } catch (FileNotFoundException fileNotFoundException) {
                 fail("Failed to find input file: " + testFiles[i].getName());
             } catch (NoSuchAlgorithmException noSuchAlgorithmException) {
-                fail("Failed to initialize MD5 Message Digest");
+                fail("Failed to initialize SHA1 Message Digest");
             } catch (IOException ioException) {
                 fail("An error occurred attempting to copy the test file to the working directory.");
             }
@@ -163,8 +162,8 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
             }
 
-            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
-                    md5s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
 
             // Decrypt file here
             try {
@@ -175,7 +174,7 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + i + "/" + testFiles.length + ": " + fileName.getName() + "%n");
             }
 
-            VerifyMD5(fileName, md5s[i], false);
+            VerifySHA1(fileName, sha1s[i], false);
         }
     }
 
@@ -195,8 +194,8 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + fileName.toString());
             }
 
-            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
-                    md5s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
 
             try {
                 RC4.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(), false);
@@ -205,7 +204,7 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + fileName.toString());
             }
 
-            VerifyMD5(fileName, md5s[i], false);
+            VerifySHA1(fileName, sha1s[i], false);
         }
     }
 
@@ -225,8 +224,8 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + fileName.toString());
             }
 
-            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
-                    md5s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
 
             try {
                 AES.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
@@ -236,7 +235,7 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + fileName.toString());
             }
 
-            VerifyMD5(fileName, md5s[i], false);
+            VerifySHA1(fileName, sha1s[i], false);
         }
     }
 
@@ -255,8 +254,8 @@ public class CryptoTest {
                 fail("Failed to encrypt file " + fileName.toString());
             }
 
-            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
-                    md5s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
 
             try {
                 BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
@@ -266,7 +265,7 @@ public class CryptoTest {
                 fail("Failed to decrypt file " + fileName.toString());
             }
 
-            VerifyMD5(fileName, md5s[i], false);
+            VerifySHA1(fileName, sha1s[i], false);
         }
     }
 
@@ -284,14 +283,14 @@ public class CryptoTest {
             assertDoesNotThrow(() ->
                     Main.main(new String[]{"-encrypt", "-i", fileName.getAbsolutePath(), "-xor", key, "-f"}));
 
-            VerifyMD5(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
-                    md5s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
 
             assertDoesNotThrow(() ->
                     Main.main(new String[]{"-decrypt", "-i", fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION,
                             "-xor", key, "-f"}));
 
-            VerifyMD5(fileName, md5s[i], false);
+            VerifySHA1(fileName, sha1s[i], false);
         }
     }
 }
