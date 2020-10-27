@@ -127,11 +127,6 @@ public class Main {
                                     f.getName(), encrypt ? "encrypted." : "decrypted.");
                         }
 
-                        if (dry) {
-                            System.out.println("-dry was selected. Skipping algorithm execution.");
-                            continue;
-                        }
-
                         // To prevent accidental encryption/decryption, the user will be prompted before executing
                         // any algorithm for EACH file.
                         if (Arrays.stream(args).noneMatch(str ->
@@ -158,6 +153,12 @@ public class Main {
                         String key = args[algoIndex];
 
                         keyRequirements(algorithm, key);
+
+                        if (dry) {
+                            System.out.println("-dry was selected. Skipping algorithm execution.");
+                            continue;
+                        }
+
                         if (Utilities.isSymmetric(algorithm)) {
                             Utilities.cryptSymmetric(algorithm, f.getAbsolutePath(), key.getBytes(), encrypt);
                         } else {
@@ -184,66 +185,59 @@ public class Main {
      */
     private static void keyRequirements(String algorithm, String key) {
         if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
-        int stringIndex = 99;
-        int min = -1, max = -1;
-        switch (algorithm) {
-            case "AES":
-                min = 16;
-                max = 32;
-                stringIndex = 2;
-                break;
-            case "BLOWFISH":
-                stringIndex = 3;
-                min = 8;
-                max = 2048;
-                break;
-            case "RC4":
-                stringIndex = 4;
-                min = 1;
-                max = 256;
-                break;
-            case "XOR":
-                stringIndex = 5;
-                min = 1;
-                max = Integer.MAX_VALUE;
-                break;
-            case "RSA":
-                stringIndex = 6;
-                min = 64;
-                max = Integer.MAX_VALUE;
-                break;
-            case "ECC":
-                stringIndex = 7;
-                min = 128;
-                max = Integer.MAX_VALUE;
-                break;
-        }
 
-        String[] keyText = {
-                "+----------+-------------+-------------+---------------------------------------------------+\n",
-                "| Cipher   | Min (bytes) | Max (bytes) |                   Requirements                    |\n",
-                "| AES      |        16 / 24 / 32       | 16, 24, or 32 bytes (128, 192, 256 bits)          |\n",
-                "| Blowfish |      8      |     2048    | 8 - 2048 bytes (32 - 442 bits)                    |\n",
-                "| RC4      |      1      |     256     | 1 - 256 bytes (8 - 2048 bits)                     |\n",
-                "| XOR      |      1      |     n       | At least 1 byte (8+ bits)                         |\n",
-                "| RSA      |      64     |     n       | At least 64 bytes (512+ bits)                     |\n",
-                "| ECC      |      128    |     n       | At least 512 bytes (1024+ bit RSA/DSA equivalent) |\n"};
+        Map<String, String> requirementStrings = new LinkedHashMap<String, String>() {{
+            put("DIVIDER",
+                    "+----------+-------------+-------------+---------------------------------------------------+\n");
+            put("TITLE",
+                    "| Cipher   | Min (bytes) | Max (bytes) |                   Requirements                    |\n");
+            put("AES",
+                    "| AES      |        16 / 24 / 32       | 16, 24, or 32 bytes (128, 192, 256 bits)          |\n");
+            put("BLOWFISH",
+                    "| Blowfish |      8      |     2048    | 8 - 2048 bytes (32 - 442 bits)                    |\n");
+            put("RC4",
+                    "| RC4      |      1      |     256     | 1 - 256 bytes (8 - 2048 bits)                     |\n");
+            put("XOR",
+                    "| XOR      |      1      |     n       | At least 1 byte (8+ bits)                         |\n");
+            put("RSA",
+                    "| RSA      |      64     |     n       | At least 64 bytes (512+ bits)                     |\n");
+            put("ECC",
+                    "| ECC      |      128    |     n       | At least 512 bytes (1024+ bit RSA/DSA equivalent) |\n");
+        }};
+
+        Map<String, int[]> keyRanges = new LinkedHashMap<String, int[]>() {{
+           put("AES", new int[] {16, 32});
+           put("BLOWFISH", new int[] {8, 2048});
+           put("RC4", new int[] {1, Integer.MAX_VALUE});
+           put("RSA", new int[] {64, Integer.MAX_VALUE});
+           put("ECC", new int[] {128, Integer.MAX_VALUE});
+        }};
 
         if (algorithm.isEmpty()) {
-            System.out.print(keyText[0] + keyText[1] + keyText[0]);
+            System.out.print(requirementStrings.get("DIVIDER") +
+                    requirementStrings.get("TITLE") +
+                    requirementStrings.get("DIVIDER"));
 
-            for (int i = 2; i < keyText.length; i++)
-                System.out.print(keyText[i]);
+            for (String reqString : requirementStrings.keySet()) {
+                if (!reqString.equals("DIVIDER") && !reqString.equals("TITLE")) {
+                    System.out.print(requirementStrings.get(reqString));
+                }
+            }
 
-            System.out.println(keyText[0]);
+            System.out.println(requirementStrings.get("DIVIDER"));
 
             System.exit(0);
-        }
-        else if ((key.length() < min || key.length() > max) ||
+        } else if ((key.length() < keyRanges.get(algorithm)[0] || key.length() > keyRanges.get(algorithm)[1]) ||
                 (algorithm.equals("AES") && key.length() != 16 && key.length() != 24 && key.length() != 32) ||
                 key.toUpperCase().equals("-INPUT")) {
 
-            System.out.println(keyText[0] + keyText[1] + keyText[0] + keyText[stringIndex] + keyText[0]);
+            System.out.println("Key supplied did not satisfy requirements. See below:\n");
+
+            System.out.print(requirementStrings.get("DIVIDER") +
+                    requirementStrings.get("TITLE") +
+                    requirementStrings.get("DIVIDER") +
+                    requirementStrings.get(algorithm) +
+                    requirementStrings.get("DIVIDER"));
 
             System.exit(-1);
         }
