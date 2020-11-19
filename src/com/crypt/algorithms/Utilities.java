@@ -337,13 +337,12 @@ public class Utilities {
      * TODO
      * @param algorithm
      */
-    public static void cryptAsymmetric(String algorithm, String fName, byte[] key, boolean encrypt) throws NoSuchAlgorithmException {
+    public static void cryptAsymmetric(String algorithm, String fName, byte[] key, boolean encrypt) throws NoSuchAlgorithmException, IOException {
         if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
         // TODO: asymmetric
         // Note: Must implement checks for algorithms that require more than 1 secret.
         switch (algorithm) {
             case "RSA":
-                RSA.createKeys();
                 RSA.crypt(fName, key, encrypt);
                 break;
             default:
@@ -362,19 +361,19 @@ public class Utilities {
 
     public static void RSAKeyPairGenerator() throws NoSuchAlgorithmException, IOException {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
+        keyGen.initialize(1048576);
         KeyPair pair = keyGen.generateKeyPair();
         privateKey = pair.getPrivate();
         publicKey = pair.getPublic();
-        writeKeysToFile("RSA/publicKey", getPublicKey().getEncoded());
-        writeKeysToFile("RSA/privateKey", getPrivateKey().getEncoded());
+        writeKeysToFile("publicKey.txt", Base64.getEncoder().encodeToString(getPublicKey().getEncoded()));
+        writeKeysToFile("privateKey.txt", Base64.getEncoder().encodeToString(getPrivateKey().getEncoded()));
     }
 
-    public static void writeKeysToFile(String path, byte[] key) throws IOException {
+    public static void writeKeysToFile(String path, String key) throws IOException {
         File f = new File(path);
-        f.getParentFile().mkdirs();
+//        f.getParentFile().mkdirs();
         FileOutputStream fos = new FileOutputStream(f);
-        fos.write(key);
+        fos.write(key.getBytes());
         fos.flush();
         fos.close();
     }

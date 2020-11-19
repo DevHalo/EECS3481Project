@@ -4,6 +4,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import java.io.File;
+import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -16,10 +18,16 @@ public class RSA {
     private static String publicKey;
     private static String privateKey;
 
-    public static void createKeys() throws NoSuchAlgorithmException {
+    public static void createKeys() throws NoSuchAlgorithmException, IOException {
         Utilities.RSAKeyPairGenerator();
         publicKey = Base64.getEncoder().encodeToString(Utilities.getPublicKey().getEncoded());
         privateKey = Base64.getEncoder().encodeToString(Utilities.getPrivateKey().getEncoded());
+    }
+
+    public static byte[] readKeysFromFile(String fileName)
+    {
+       return Utilities.readFile(fileName);
+
     }
 
     public static PublicKey getPublicKey(String base64PublicKey){
@@ -71,6 +79,16 @@ public class RSA {
             // Read input bytes from file and initialize output array
             byte[] input = Utilities.readFile(fileName);
             byte[] output = new byte[input.length];
+            if (new File("publicKey.txt").exists())
+            {
+                publicKey = new String(readKeysFromFile("publicKey.txt"));
+                privateKey = new String(readKeysFromFile("privateKey.txt"));
+            }
+            else
+            {
+                createKeys();
+            }
+
             if(encrypt)
             {
                 output = encrypt(input , publicKey);

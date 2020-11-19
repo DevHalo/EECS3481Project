@@ -13,7 +13,7 @@ public class Main {
     /**
      * The main entry point of the application
      */
-    public static void main(String[] args) throws NoSuchAlgorithmException {
+    public static void main(String[] args) throws NoSuchAlgorithmException, IOException {
         switch (args.length) {
             case 0:
                 // If user supplies no arguments, show basic usage and option for more information
