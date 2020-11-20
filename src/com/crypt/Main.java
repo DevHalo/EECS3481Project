@@ -212,6 +212,7 @@ public class Main {
            put("RC4", new int[] {1, Integer.MAX_VALUE});
            put("RSA", new int[] {64, Integer.MAX_VALUE});
            put("ECC", new int[] {128, Integer.MAX_VALUE});
+           put("XOR", new int[] {1, Integer.MAX_VALUE});
         }};
 
         if (algorithm.isEmpty()) {
