@@ -248,7 +248,7 @@ public class CryptoTest {
         for (int i = 0; i < testFiles.length; i++) {
             File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
             try {
-                BLOWFISH.crypt(fileName.toString(), key.getBytes(StandardCharsets.UTF_8), Utilities.ENCRYPT);
+                BLOWFISH.cryptAPI(fileName.toString(), key.getBytes(StandardCharsets.UTF_8), Utilities.ENCRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to encrypt file " + fileName.toString());
@@ -258,7 +258,7 @@ public class CryptoTest {
                     sha1s[i], true);
 
             try {
-                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                BLOWFISH.cryptAPI(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
                         key.getBytes(StandardCharsets.UTF_8), Utilities.DECRYPT);
             } catch (Exception e) {
                 e.printStackTrace();
