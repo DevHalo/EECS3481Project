@@ -171,7 +171,7 @@ public class Utilities {
         }
     }
 
-    private static void setExtension(String filePathAndName, boolean encryptFlag) {
+    public static void setExtension(String filePathAndName, boolean encryptFlag) {
 
         String newFilePathAndName = "";
 
