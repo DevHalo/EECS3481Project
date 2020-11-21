@@ -318,7 +318,7 @@ public class Utilities {
                 AES.crypt(fName, key, encrypt);
                 break;
             case "BLOWFISH":
-                BLOWFISH.crypt(fName, key, encrypt);
+                BLOWFISH.crypt(fName, key, encrypt, BLOWFISH.Mode.CBC, null);
                 break;
             case "RC4":
                 RC4.crypt(fName, key, encrypt);

@@ -14,14 +14,14 @@ import java.security.NoSuchAlgorithmException;
 // Implementation of the Blowfish algorithm
 public class BLOWFISH {
 
+    public enum Mode { ECB, CBC }
+
     private static final int BLOCK_SIZE = 8;
+    private static final long POWER32 = 1L << 32;
+    private static byte[] pKey = null;
+    private static String userIV = null;
 
-    public static void crypt(String filePath, byte[] key, boolean isEncryption) {
-        if (isEncryption) encrypt(filePath, key);
-        else decrypt(filePath, key);
-    }
-
-    private static void encrypt(String filePath, byte[] key) {
+    public static void crypt(String filePath, byte[] key, boolean isEncryption, Mode mode, String initVector) {
         CipherFile file;
         try {
             file = new CipherFile(filePath, BLOCK_SIZE);
@@ -31,14 +31,62 @@ public class BLOWFISH {
             return;
         } catch (IllegalBlockSizeException ignored) { return; }
 
-        byte[] iv = Utilities.getIV(BLOCK_SIZE);
+        if (pKey == null) pKey = generatePArray(key);
+        if (mode == Mode.CBC && initVector != null) userIV = initVector;
 
-        byte[] toEncrypt = file.readDataAtOffset(0, false, Integer.MAX_VALUE - 500);
+
+
+        byte[] IV = userIV == null ? Utilities.getIV(BLOCK_SIZE) : userIV.getBytes();
+
+        if (isEncryption) {
+            byte[] lastBlock = IV;
+            while (file.hasNext()) {
+                byte[] block = file.nextBlock(true);
+                if (mode == Mode.CBC) {
+                    for(int i = 0; i < block.length; i++)
+                        block[i] ^= lastBlock[i];
+                }
+                lastBlock = encrypt(block);
+                file.writeData(lastBlock);
+            }
+            file.writeData(IV);
+
+        } else {
+            byte[] nextBlock;
+            // TODO
+            decrypt(null);
+        }
     }
 
-    private static void decrypt(String filePath, byte[] key) {
+    private static byte[] encrypt(byte[] block) {
+        // TODO
+        return null;
     }
 
+    private static byte[] decrypt(byte[] block) {
+        // TODO
+        return null;
+    }
+
+
+    private static byte f(byte x) {
+        // TODO
+        return 0;
+//        uint32_t h = S[0][x >> 24] + S[1][x >> 16 & 0xff];
+//        return ( h ^ S[2][x >> 8 & 0xff] ) + S[3][x & 0xff];
+    }
+
+    private static byte[] generatePArray(byte[] key) {
+
+        int currKeyByte = 0;
+        byte[] PKey = new byte[P.length];
+
+        return PKey;
+    }
+
+    ////////////////
+    /// USING API///
+    ////////////////
 
     public static void cryptAPI(String filePath, byte[] key, boolean isEncryption) {
         if (isEncryption) encryptAPI(filePath, key);
@@ -137,221 +185,186 @@ public class BLOWFISH {
         }
     }
 
-    // S and P boxes thanks to https://www.geeksforgeeks.org/blowfish-algorithm-with-examples/
-    // Substitution boxes each string is a 32 bit hexadecimal value.
-    String S[][]
-            = { { "d1310ba6", "98dfb5ac", "2ffd72db", "d01adfb7", "b8e1afed",
-            "6a267e96", "ba7c9045", "f12c7f99", "24a19947", "b3916cf7",
-            "0801f2e2", "858efc16", "636920d8", "71574e69", "a458fea3",
-            "f4933d7e", "0d95748f", "728eb658", "718bcd58", "82154aee",
-            "7b54a41d", "c25a59b5", "9c30d539", "2af26013", "c5d1b023",
-            "286085f0", "ca417918", "b8db38ef", "8e79dcb0", "603a180e",
-            "6c9e0e8b", "b01e8a3e", "d71577c1", "bd314b27", "78af2fda",
-            "55605c60", "e65525f3", "aa55ab94", "57489862", "63e81440",
-            "55ca396a", "2aab10b6", "b4cc5c34", "1141e8ce", "a15486af",
-            "7c72e993", "b3ee1411", "636fbc2a", "2ba9c55d", "741831f6",
-            "ce5c3e16", "9b87931e", "afd6ba33", "6c24cf5c", "7a325381",
-            "28958677", "3b8f4898", "6b4bb9af", "c4bfe81b", "66282193",
-            "61d809cc", "fb21a991", "487cac60", "5dec8032", "ef845d5d",
-            "e98575b1", "dc262302", "eb651b88", "23893e81", "d396acc5",
-            "0f6d6ff3", "83f44239", "2e0b4482", "a4842004", "69c8f04a",
-            "9e1f9b5e", "21c66842", "f6e96c9a", "670c9c61", "abd388f0",
-            "6a51a0d2", "d8542f68", "960fa728", "ab5133a3", "6eef0b6c",
-            "137a3be4", "ba3bf050", "7efb2a98", "a1f1651d", "39af0176",
-            "66ca593e", "82430e88", "8cee8619", "456f9fb4", "7d84a5c3",
-            "3b8b5ebe", "e06f75d8", "85c12073", "401a449f", "56c16aa6",
-            "4ed3aa62", "363f7706", "1bfedf72", "429b023d", "37d0d724",
-            "d00a1248", "db0fead3", "49f1c09b", "075372c9", "80991b7b",
-            "25d479d8", "f6e8def7", "e3fe501a", "b6794c3b", "976ce0bd",
-            "04c006ba", "c1a94fb6", "409f60c4", "5e5c9ec2", "196a2463",
-            "68fb6faf", "3e6c53b5", "1339b2eb", "3b52ec6f", "6dfc511f",
-            "9b30952c", "cc814544", "af5ebd09", "bee3d004", "de334afd",
-            "660f2807", "192e4bb3", "c0cba857", "45c8740f", "d20b5f39",
-            "b9d3fbdb", "5579c0bd", "1a60320a", "d6a100c6", "402c7279",
-            "679f25fe", "fb1fa3cc", "8ea5e9f8", "db3222f8", "3c7516df",
-            "fd616b15", "2f501ec8", "ad0552ab", "323db5fa", "fd238760",
-            "53317b48", "3e00df82", "9e5c57bb", "ca6f8ca0", "1a87562e",
-            "df1769db", "d542a8f6", "287effc3", "ac6732c6", "8c4f5573",
-            "695b27b0", "bbca58c8", "e1ffa35d", "b8f011a0", "10fa3d98",
-            "fd2183b8", "4afcb56c", "2dd1d35b", "9a53e479", "b6f84565",
-            "d28e49bc", "4bfb9790", "e1ddf2da", "a4cb7e33", "62fb1341",
-            "cee4c6e8", "ef20cada", "36774c01", "d07e9efe", "2bf11fb4",
-            "95dbda4d", "ae909198", "eaad8e71", "6b93d5a0", "d08ed1d0",
-            "afc725e0", "8e3c5b2f", "8e7594b7", "8ff6e2fb", "f2122b64",
-            "8888b812", "900df01c", "4fad5ea0", "688fc31c", "d1cff191",
-            "b3a8c1ad", "2f2f2218", "be0e1777", "ea752dfe", "8b021fa1",
-            "e5a0cc0f", "b56f74e8", "18acf3d6", "ce89e299", "b4a84fe0",
-            "fd13e0b7", "7cc43b81", "d2ada8d9", "165fa266", "80957705",
-            "93cc7314", "211a1477", "e6ad2065", "77b5fa86", "c75442f5",
-            "fb9d35cf", "ebcdaf0c", "7b3e89a0", "d6411bd3", "ae1e7e49",
-            "00250e2d", "2071b35e", "226800bb", "57b8e0af", "2464369b",
-            "f009b91e", "5563911d", "59dfa6aa", "78c14389", "d95a537f",
-            "207d5ba2", "02e5b9c5", "83260376", "6295cfa9", "11c81968",
-            "4e734a41", "b3472dca", "7b14a94a", "1b510052", "9a532915",
-            "d60f573f", "bc9bc6e4", "2b60a476", "81e67400", "08ba6fb5",
-            "571be91f", "f296ec6b", "2a0dd915", "b6636521", "e7b9f9b6",
-            "ff34052e", "c5855664", "53b02d5d", "a99f8fa1", "08ba4799",
-            "6e85076a" },
-            { "4b7a70e9", "b5b32944", "db75092e", "c4192623", "ad6ea6b0",
-                    "49a7df7d", "9cee60b8", "8fedb266", "ecaa8c71", "699a17ff",
-                    "5664526c", "c2b19ee1", "193602a5", "75094c29", "a0591340",
-                    "e4183a3e", "3f54989a", "5b429d65", "6b8fe4d6", "99f73fd6",
-                    "a1d29c07", "efe830f5", "4d2d38e6", "f0255dc1", "4cdd2086",
-                    "8470eb26", "6382e9c6", "021ecc5e", "09686b3f", "3ebaefc9",
-                    "3c971814", "6b6a70a1", "687f3584", "52a0e286", "b79c5305",
-                    "aa500737", "3e07841c", "7fdeae5c", "8e7d44ec", "5716f2b8",
-                    "b03ada37", "f0500c0d", "f01c1f04", "0200b3ff", "ae0cf51a",
-                    "3cb574b2", "25837a58", "dc0921bd", "d19113f9", "7ca92ff6",
-                    "94324773", "22f54701", "3ae5e581", "37c2dadc", "c8b57634",
-                    "9af3dda7", "a9446146", "0fd0030e", "ecc8c73e", "a4751e41",
-                    "e238cd99", "3bea0e2f", "3280bba1", "183eb331", "4e548b38",
-                    "4f6db908", "6f420d03", "f60a04bf", "2cb81290", "24977c79",
-                    "5679b072", "bcaf89af", "de9a771f", "d9930810", "b38bae12",
-                    "dccf3f2e", "5512721f", "2e6b7124", "501adde6", "9f84cd87",
-                    "7a584718", "7408da17", "bc9f9abc", "e94b7d8c", "ec7aec3a",
-                    "db851dfa", "63094366", "c464c3d2", "ef1c1847", "3215d908",
-                    "dd433b37", "24c2ba16", "12a14d43", "2a65c451", "50940002",
-                    "133ae4dd", "71dff89e", "10314e55", "81ac77d6", "5f11199b",
-                    "043556f1", "d7a3c76b", "3c11183b", "5924a509", "f28fe6ed",
-                    "97f1fbfa", "9ebabf2c", "1e153c6e", "86e34570", "eae96fb1",
-                    "860e5e0a", "5a3e2ab3", "771fe71c", "4e3d06fa", "2965dcb9",
-                    "99e71d0f", "803e89d6", "5266c825", "2e4cc978", "9c10b36a",
-                    "c6150eba", "94e2ea78", "a5fc3c53", "1e0a2df4", "f2f74ea7",
-                    "361d2b3d", "1939260f", "19c27960", "5223a708", "f71312b6",
-                    "ebadfe6e", "eac31f66", "e3bc4595", "a67bc883", "b17f37d1",
-                    "018cff28", "c332ddef", "be6c5aa5", "65582185", "68ab9802",
-                    "eecea50f", "db2f953b", "2aef7dad", "5b6e2f84", "1521b628",
-                    "29076170", "ecdd4775", "619f1510", "13cca830", "eb61bd96",
-                    "0334fe1e", "aa0363cf", "b5735c90", "4c70a239", "d59e9e0b",
-                    "cbaade14", "eecc86bc", "60622ca7", "9cab5cab", "b2f3846e",
-                    "648b1eaf", "19bdf0ca", "a02369b9", "655abb50", "40685a32",
-                    "3c2ab4b3", "319ee9d5", "c021b8f7", "9b540b19", "875fa099",
-                    "95f7997e", "623d7da8", "f837889a", "97e32d77", "11ed935f",
-                    "16681281", "0e358829", "c7e61fd6", "96dedfa1", "7858ba99",
-                    "57f584a5", "1b227263", "9b83c3ff", "1ac24696", "cdb30aeb",
-                    "532e3054", "8fd948e4", "6dbc3128", "58ebf2ef", "34c6ffea",
-                    "fe28ed61", "ee7c3c73", "5d4a14d9", "e864b7e3", "42105d14",
-                    "203e13e0", "45eee2b6", "a3aaabea", "db6c4f15", "facb4fd0",
-                    "c742f442", "ef6abbb5", "654f3b1d", "41cd2105", "d81e799e",
-                    "86854dc7", "e44b476a", "3d816250", "cf62a1f2", "5b8d2646",
-                    "fc8883a0", "c1c7b6a3", "7f1524c3", "69cb7492", "47848a0b",
-                    "5692b285", "095bbf00", "ad19489d", "1462b174", "23820e00",
-                    "58428d2a", "0c55f5ea", "1dadf43e", "233f7061", "3372f092",
-                    "8d937e41", "d65fecf1", "6c223bdb", "7cde3759", "cbee7460",
-                    "4085f2a7", "ce77326e", "a6078084", "19f8509e", "e8efd855",
-                    "61d99735", "a969a7aa", "c50c06c2", "5a04abfc", "800bcadc",
-                    "9e447a2e", "c3453484", "fdd56705", "0e1e9ec9", "db73dbd3",
-                    "105588cd", "675fda79", "e3674340", "c5c43465", "713e38d8",
-                    "3d28f89e", "f16dff20", "153e21e7", "8fb03d4a", "e6e39f2b",
-                    "db83adf7" },
-            { "e93d5a68", "948140f7", "f64c261c", "94692934", "411520f7",
-                    "7602d4f7", "bcf46b2e", "d4a20068", "d4082471", "3320f46a",
-                    "43b7d4b7", "500061af", "1e39f62e", "97244546", "14214f74",
-                    "bf8b8840", "4d95fc1d", "96b591af", "70f4ddd3", "66a02f45",
-                    "bfbc09ec", "03bd9785", "7fac6dd0", "31cb8504", "96eb27b3",
-                    "55fd3941", "da2547e6", "abca0a9a", "28507825", "530429f4",
-                    "0a2c86da", "e9b66dfb", "68dc1462", "d7486900", "680ec0a4",
-                    "27a18dee", "4f3ffea2", "e887ad8c", "b58ce006", "7af4d6b6",
-                    "aace1e7c", "d3375fec", "ce78a399", "406b2a42", "20fe9e35",
-                    "d9f385b9", "ee39d7ab", "3b124e8b", "1dc9faf7", "4b6d1856",
-                    "26a36631", "eae397b2", "3a6efa74", "dd5b4332", "6841e7f7",
-                    "ca7820fb", "fb0af54e", "d8feb397", "454056ac", "ba489527",
-                    "55533a3a", "20838d87", "fe6ba9b7", "d096954b", "55a867bc",
-                    "a1159a58", "cca92963", "99e1db33", "a62a4a56", "3f3125f9",
-                    "5ef47e1c", "9029317c", "fdf8e802", "04272f70", "80bb155c",
-                    "05282ce3", "95c11548", "e4c66d22", "48c1133f", "c70f86dc",
-                    "07f9c9ee", "41041f0f", "404779a4", "5d886e17", "325f51eb",
-                    "d59bc0d1", "f2bcc18f", "41113564", "257b7834", "602a9c60",
-                    "dff8e8a3", "1f636c1b", "0e12b4c2", "02e1329e", "af664fd1",
-                    "cad18115", "6b2395e0", "333e92e1", "3b240b62", "eebeb922",
-                    "85b2a20e", "e6ba0d99", "de720c8c", "2da2f728", "d0127845",
-                    "95b794fd", "647d0862", "e7ccf5f0", "5449a36f", "877d48fa",
-                    "c39dfd27", "f33e8d1e", "0a476341", "992eff74", "3a6f6eab",
-                    "f4f8fd37", "a812dc60", "a1ebddf8", "991be14c", "db6e6b0d",
-                    "c67b5510", "6d672c37", "2765d43b", "dcd0e804", "f1290dc7",
-                    "cc00ffa3", "b5390f92", "690fed0b", "667b9ffb", "cedb7d9c",
-                    "a091cf0b", "d9155ea3", "bb132f88", "515bad24", "7b9479bf",
-                    "763bd6eb", "37392eb3", "cc115979", "8026e297", "f42e312d",
-                    "6842ada7", "c66a2b3b", "12754ccc", "782ef11c", "6a124237",
-                    "b79251e7", "06a1bbe6", "4bfb6350", "1a6b1018", "11caedfa",
-                    "3d25bdd8", "e2e1c3c9", "44421659", "0a121386", "d90cec6e",
-                    "d5abea2a", "64af674e", "da86a85f", "bebfe988", "64e4c3fe",
-                    "9dbc8057", "f0f7c086", "60787bf8", "6003604d", "d1fd8346",
-                    "f6381fb0", "7745ae04", "d736fccc", "83426b33", "f01eab71",
-                    "b0804187", "3c005e5f", "77a057be", "bde8ae24", "55464299",
-                    "bf582e61", "4e58f48f", "f2ddfda2", "f474ef38", "8789bdc2",
-                    "5366f9c3", "c8b38e74", "b475f255", "46fcd9b9", "7aeb2661",
-                    "8b1ddf84", "846a0e79", "915f95e2", "466e598e", "20b45770",
-                    "8cd55591", "c902de4c", "b90bace1", "bb8205d0", "11a86248",
-                    "7574a99e", "b77f19b6", "e0a9dc09", "662d09a1", "c4324633",
-                    "e85a1f02", "09f0be8c", "4a99a025", "1d6efe10", "1ab93d1d",
-                    "0ba5a4df", "a186f20f", "2868f169", "dcb7da83", "573906fe",
-                    "a1e2ce9b", "4fcd7f52", "50115e01", "a70683fa", "a002b5c4",
-                    "0de6d027", "9af88c27", "773f8641", "c3604c06", "61a806b5",
-                    "f0177a28", "c0f586e0", "006058aa", "30dc7d62", "11e69ed7",
-                    "2338ea63", "53c2dd94", "c2c21634", "bbcbee56", "90bcb6de",
-                    "ebfc7da1", "ce591d76", "6f05e409", "4b7c0188", "39720a3d",
-                    "7c927c24", "86e3725f", "724d9db9", "1ac15bb4", "d39eb8fc",
-                    "ed545578", "08fca5b5", "d83d7cd3", "4dad0fc4", "1e50ef5e",
-                    "b161e6f8", "a28514d9", "6c51133c", "6fd5c7e7", "56e14ec4",
-                    "362abfce", "ddc6c837", "d79a3234", "92638212", "670efa8e",
-                    "406000e0" },
-            { "3a39ce37", "d3faf5cf", "abc27737", "5ac52d1b", "5cb0679e",
-                    "4fa33742", "d3822740", "99bc9bbe", "d5118e9d", "bf0f7315",
-                    "d62d1c7e", "c700c47b", "b78c1b6b", "21a19045", "b26eb1be",
-                    "6a366eb4", "5748ab2f", "bc946e79", "c6a376d2", "6549c2c8",
-                    "530ff8ee", "468dde7d", "d5730a1d", "4cd04dc6", "2939bbdb",
-                    "a9ba4650", "ac9526e8", "be5ee304", "a1fad5f0", "6a2d519a",
-                    "63ef8ce2", "9a86ee22", "c089c2b8", "43242ef6", "a51e03aa",
-                    "9cf2d0a4", "83c061ba", "9be96a4d", "8fe51550", "ba645bd6",
-                    "2826a2f9", "a73a3ae1", "4ba99586", "ef5562e9", "c72fefd3",
-                    "f752f7da", "3f046f69", "77fa0a59", "80e4a915", "87b08601",
-                    "9b09e6ad", "3b3ee593", "e990fd5a", "9e34d797", "2cf0b7d9",
-                    "022b8b51", "96d5ac3a", "017da67d", "d1cf3ed6", "7c7d2d28",
-                    "1f9f25cf", "adf2b89b", "5ad6b472", "5a88f54c", "e029ac71",
-                    "e019a5e6", "47b0acfd", "ed93fa9b", "e8d3c48d", "283b57cc",
-                    "f8d56629", "79132e28", "785f0191", "ed756055", "f7960e44",
-                    "e3d35e8c", "15056dd4", "88f46dba", "03a16125", "0564f0bd",
-                    "c3eb9e15", "3c9057a2", "97271aec", "a93a072a", "1b3f6d9b",
-                    "1e6321f5", "f59c66fb", "26dcf319", "7533d928", "b155fdf5",
-                    "03563482", "8aba3cbb", "28517711", "c20ad9f8", "abcc5167",
-                    "ccad925f", "4de81751", "3830dc8e", "379d5862", "9320f991",
-                    "ea7a90c2", "fb3e7bce", "5121ce64", "774fbe32", "a8b6e37e",
-                    "c3293d46", "48de5369", "6413e680", "a2ae0810", "dd6db224",
-                    "69852dfd", "09072166", "b39a460a", "6445c0dd", "586cdecf",
-                    "1c20c8ae", "5bbef7dd", "1b588d40", "ccd2017f", "6bb4e3bb",
-                    "dda26a7e", "3a59ff45", "3e350a44", "bcb4cdd5", "72eacea8",
-                    "fa6484bb", "8d6612ae", "bf3c6f47", "d29be463", "542f5d9e",
-                    "aec2771b", "f64e6370", "740e0d8d", "e75b1357", "f8721671",
-                    "af537d5d", "4040cb08", "4eb4e2cc", "34d2466a", "0115af84",
-                    "e1b00428", "95983a1d", "06b89fb4", "ce6ea048", "6f3f3b82",
-                    "3520ab82", "011a1d4b", "277227f8", "611560b1", "e7933fdc",
-                    "bb3a792b", "344525bd", "a08839e1", "51ce794b", "2f32c9b7",
-                    "a01fbac9", "e01cc87e", "bcc7d1f6", "cf0111c3", "a1e8aac7",
-                    "1a908749", "d44fbd9a", "d0dadecb", "d50ada38", "0339c32a",
-                    "c6913667", "8df9317c", "e0b12b4f", "f79e59b7", "43f5bb3a",
-                    "f2d519ff", "27d9459c", "bf97222c", "15e6fc2a", "0f91fc71",
-                    "9b941525", "fae59361", "ceb69ceb", "c2a86459", "12baa8d1",
-                    "b6c1075e", "e3056a0c", "10d25065", "cb03a442", "e0ec6e0e",
-                    "1698db3b", "4c98a0be", "3278e964", "9f1f9532", "e0d392df",
-                    "d3a0342b", "8971f21e", "1b0a7441", "4ba3348c", "c5be7120",
-                    "c37632d8", "df359f8d", "9b992f2e", "e60b6f47", "0fe3f11d",
-                    "e54cda54", "1edad891", "ce6279cf", "cd3e7e6f", "1618b166",
-                    "fd2c1d05", "848fd2c5", "f6fb2299", "f523f357", "a6327623",
-                    "93a83531", "56cccd02", "acf08162", "5a75ebb5", "6e163697",
-                    "88d273cc", "de966292", "81b949d0", "4c50901b", "71c65614",
-                    "e6c6c7bd", "327a140a", "45e1d006", "c3f27b9a", "c9aa53fd",
-                    "62a80f00", "bb25bfe2", "35bdd2f6", "71126905", "b2040222",
-                    "b6cbcf7c", "cd769c2b", "53113ec0", "1640e3d3", "38abbd60",
-                    "2547adf0", "ba38209c", "f746ce76", "77afa1c5", "20756060",
-                    "85cbfe4e", "8ae88dd8", "7aaaf9b0", "4cf9aa7e", "1948c25c",
-                    "02fb8a8c", "01c36ae4", "d6ebe1f9", "90d4f869", "a65cdea0",
-                    "3f09252d", "c208e69f", "b74e6132", "ce77e25b", "578fdfe3",
-                    "3ac372e6" } };
+    final static int P[] = {
+        0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344, 0xa4093822, 0x299f31d0,
+        0x082efa98, 0xec4e6c89, 0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
+        0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917, 0x9216d5d9, 0x8979fb1b
+    };
 
-    // Subkeys initialisation with digits of pi.
-    String P[] = { "243f6a88", "85a308d3", "13198a2e", "03707344", "a4093822",
-            "299f31d0", "082efa98", "ec4e6c89", "452821e6", "38d01377",
-            "be5466cf", "34e90c6c", "c0ac29b7", "c97c50dd", "3f84d5b5",
-            "b5470917", "9216d5d9", "8979fb1b" };
+    final static int S[][] = {{
+            0xd1310ba6,   0x98dfb5ac,   0x2ffd72db,   0xd01adfb7,   0xb8e1afed,   0x6a267e96,
+            0xba7c9045,   0xf12c7f99,   0x24a19947,   0xb3916cf7,   0x0801f2e2,   0x858efc16,
+            0x636920d8,   0x71574e69,   0xa458fea3,   0xf4933d7e,   0x0d95748f,   0x728eb658,
+            0x718bcd58,   0x82154aee,   0x7b54a41d,   0xc25a59b5,   0x9c30d539,   0x2af26013,
+            0xc5d1b023,   0x286085f0,   0xca417918,   0xb8db38ef,   0x8e79dcb0,   0x603a180e,
+            0x6c9e0e8b,   0xb01e8a3e,   0xd71577c1,   0xbd314b27,   0x78af2fda,   0x55605c60,
+            0xe65525f3,   0xaa55ab94,   0x57489862,   0x63e81440,   0x55ca396a,   0x2aab10b6,
+            0xb4cc5c34,   0x1141e8ce,   0xa15486af,   0x7c72e993,   0xb3ee1411,   0x636fbc2a,
+            0x2ba9c55d,   0x741831f6,   0xce5c3e16,   0x9b87931e,   0xafd6ba33,   0x6c24cf5c,
+            0x7a325381,   0x28958677,   0x3b8f4898,   0x6b4bb9af,   0xc4bfe81b,   0x66282193,
+            0x61d809cc,   0xfb21a991,   0x487cac60,   0x5dec8032,   0xef845d5d,   0xe98575b1,
+            0xdc262302,   0xeb651b88,   0x23893e81,   0xd396acc5,   0x0f6d6ff3,   0x83f44239,
+            0x2e0b4482,   0xa4842004,   0x69c8f04a,   0x9e1f9b5e,   0x21c66842,   0xf6e96c9a,
+            0x670c9c61,   0xabd388f0,   0x6a51a0d2,   0xd8542f68,   0x960fa728,   0xab5133a3,
+            0x6eef0b6c,   0x137a3be4,   0xba3bf050,   0x7efb2a98,   0xa1f1651d,   0x39af0176,
+            0x66ca593e,   0x82430e88,   0x8cee8619,   0x456f9fb4,   0x7d84a5c3,   0x3b8b5ebe,
+            0xe06f75d8,   0x85c12073,   0x401a449f,   0x56c16aa6,   0x4ed3aa62,   0x363f7706,
+            0x1bfedf72,   0x429b023d,   0x37d0d724,   0xd00a1248,   0xdb0fead3,   0x49f1c09b,
+            0x075372c9,   0x80991b7b,   0x25d479d8,   0xf6e8def7,   0xe3fe501a,   0xb6794c3b,
+            0x976ce0bd,   0x04c006ba,   0xc1a94fb6,   0x409f60c4,   0x5e5c9ec2,   0x196a2463,
+            0x68fb6faf,   0x3e6c53b5,   0x1339b2eb,   0x3b52ec6f,   0x6dfc511f,   0x9b30952c,
+            0xcc814544,   0xaf5ebd09,   0xbee3d004,   0xde334afd,   0x660f2807,   0x192e4bb3,
+            0xc0cba857,   0x45c8740f,   0xd20b5f39,   0xb9d3fbdb,   0x5579c0bd,   0x1a60320a,
+            0xd6a100c6,   0x402c7279,   0x679f25fe,   0xfb1fa3cc,   0x8ea5e9f8,   0xdb3222f8,
+            0x3c7516df,   0xfd616b15,   0x2f501ec8,   0xad0552ab,   0x323db5fa,   0xfd238760,
+            0x53317b48,   0x3e00df82,   0x9e5c57bb,   0xca6f8ca0,   0x1a87562e,   0xdf1769db,
+            0xd542a8f6,   0x287effc3,   0xac6732c6,   0x8c4f5573,   0x695b27b0,   0xbbca58c8,
+            0xe1ffa35d,   0xb8f011a0,   0x10fa3d98,   0xfd2183b8,   0x4afcb56c,   0x2dd1d35b,
+            0x9a53e479,   0xb6f84565,   0xd28e49bc,   0x4bfb9790,   0xe1ddf2da,   0xa4cb7e33,
+            0x62fb1341,   0xcee4c6e8,   0xef20cada,   0x36774c01,   0xd07e9efe,   0x2bf11fb4,
+            0x95dbda4d,   0xae909198,   0xeaad8e71,   0x6b93d5a0,   0xd08ed1d0,   0xafc725e0,
+            0x8e3c5b2f,   0x8e7594b7,   0x8ff6e2fb,   0xf2122b64,   0x8888b812,   0x900df01c,
+            0x4fad5ea0,   0x688fc31c,   0xd1cff191,   0xb3a8c1ad,   0x2f2f2218,   0xbe0e1777,
+            0xea752dfe,   0x8b021fa1,   0xe5a0cc0f,   0xb56f74e8,   0x18acf3d6,   0xce89e299,
+            0xb4a84fe0,   0xfd13e0b7,   0x7cc43b81,   0xd2ada8d9,   0x165fa266,   0x80957705,
+            0x93cc7314,   0x211a1477,   0xe6ad2065,   0x77b5fa86,   0xc75442f5,   0xfb9d35cf,
+            0xebcdaf0c,   0x7b3e89a0,   0xd6411bd3,   0xae1e7e49,   0x00250e2d,   0x2071b35e,
+            0x226800bb,   0x57b8e0af,   0x2464369b,   0xf009b91e,   0x5563911d,   0x59dfa6aa,
+            0x78c14389,   0xd95a537f,   0x207d5ba2,   0x02e5b9c5,   0x83260376,   0x6295cfa9,
+            0x11c81968,   0x4e734a41,   0xb3472dca,   0x7b14a94a,   0x1b510052,   0x9a532915,
+            0xd60f573f,   0xbc9bc6e4,   0x2b60a476,   0x81e67400,   0x08ba6fb5,   0x571be91f,
+            0xf296ec6b,   0x2a0dd915,   0xb6636521,   0xe7b9f9b6,   0xff34052e,   0xc5855664,
+            0x53b02d5d,   0xa99f8fa1,   0x08ba4799,   0x6e85076a },{
+            0x4b7a70e9,   0xb5b32944,
+            0xdb75092e,   0xc4192623,   0xad6ea6b0,   0x49a7df7d,   0x9cee60b8,   0x8fedb266,
+            0xecaa8c71,   0x699a17ff,   0x5664526c,   0xc2b19ee1,   0x193602a5,   0x75094c29,
+            0xa0591340,   0xe4183a3e,   0x3f54989a,   0x5b429d65,   0x6b8fe4d6,   0x99f73fd6,
+            0xa1d29c07,   0xefe830f5,   0x4d2d38e6,   0xf0255dc1,   0x4cdd2086,   0x8470eb26,
+            0x6382e9c6,   0x021ecc5e,   0x09686b3f,   0x3ebaefc9,   0x3c971814,   0x6b6a70a1,
+            0x687f3584,   0x52a0e286,   0xb79c5305,   0xaa500737,   0x3e07841c,   0x7fdeae5c,
+            0x8e7d44ec,   0x5716f2b8,   0xb03ada37,   0xf0500c0d,   0xf01c1f04,   0x0200b3ff,
+            0xae0cf51a,   0x3cb574b2,   0x25837a58,   0xdc0921bd,   0xd19113f9,   0x7ca92ff6,
+            0x94324773,   0x22f54701,   0x3ae5e581,   0x37c2dadc,   0xc8b57634,   0x9af3dda7,
+            0xa9446146,   0x0fd0030e,   0xecc8c73e,   0xa4751e41,   0xe238cd99,   0x3bea0e2f,
+            0x3280bba1,   0x183eb331,   0x4e548b38,   0x4f6db908,   0x6f420d03,   0xf60a04bf,
+            0x2cb81290,   0x24977c79,   0x5679b072,   0xbcaf89af,   0xde9a771f,   0xd9930810,
+            0xb38bae12,   0xdccf3f2e,   0x5512721f,   0x2e6b7124,   0x501adde6,   0x9f84cd87,
+            0x7a584718,   0x7408da17,   0xbc9f9abc,   0xe94b7d8c,   0xec7aec3a,   0xdb851dfa,
+            0x63094366,   0xc464c3d2,   0xef1c1847,   0x3215d908,   0xdd433b37,   0x24c2ba16,
+            0x12a14d43,   0x2a65c451,   0x50940002,   0x133ae4dd,   0x71dff89e,   0x10314e55,
+            0x81ac77d6,   0x5f11199b,   0x043556f1,   0xd7a3c76b,   0x3c11183b,   0x5924a509,
+            0xf28fe6ed,   0x97f1fbfa,   0x9ebabf2c,   0x1e153c6e,   0x86e34570,   0xeae96fb1,
+            0x860e5e0a,   0x5a3e2ab3,   0x771fe71c,   0x4e3d06fa,   0x2965dcb9,   0x99e71d0f,
+            0x803e89d6,   0x5266c825,   0x2e4cc978,   0x9c10b36a,   0xc6150eba,   0x94e2ea78,
+            0xa5fc3c53,   0x1e0a2df4,   0xf2f74ea7,   0x361d2b3d,   0x1939260f,   0x19c27960,
+            0x5223a708,   0xf71312b6,   0xebadfe6e,   0xeac31f66,   0xe3bc4595,   0xa67bc883,
+            0xb17f37d1,   0x018cff28,   0xc332ddef,   0xbe6c5aa5,   0x65582185,   0x68ab9802,
+            0xeecea50f,   0xdb2f953b,   0x2aef7dad,   0x5b6e2f84,   0x1521b628,   0x29076170,
+            0xecdd4775,   0x619f1510,   0x13cca830,   0xeb61bd96,   0x0334fe1e,   0xaa0363cf,
+            0xb5735c90,   0x4c70a239,   0xd59e9e0b,   0xcbaade14,   0xeecc86bc,   0x60622ca7,
+            0x9cab5cab,   0xb2f3846e,   0x648b1eaf,   0x19bdf0ca,   0xa02369b9,   0x655abb50,
+            0x40685a32,   0x3c2ab4b3,   0x319ee9d5,   0xc021b8f7,   0x9b540b19,   0x875fa099,
+            0x95f7997e,   0x623d7da8,   0xf837889a,   0x97e32d77,   0x11ed935f,   0x16681281,
+            0x0e358829,   0xc7e61fd6,   0x96dedfa1,   0x7858ba99,   0x57f584a5,   0x1b227263,
+            0x9b83c3ff,   0x1ac24696,   0xcdb30aeb,   0x532e3054,   0x8fd948e4,   0x6dbc3128,
+            0x58ebf2ef,   0x34c6ffea,   0xfe28ed61,   0xee7c3c73,   0x5d4a14d9,   0xe864b7e3,
+            0x42105d14,   0x203e13e0,   0x45eee2b6,   0xa3aaabea,   0xdb6c4f15,   0xfacb4fd0,
+            0xc742f442,   0xef6abbb5,   0x654f3b1d,   0x41cd2105,   0xd81e799e,   0x86854dc7,
+            0xe44b476a,   0x3d816250,   0xcf62a1f2,   0x5b8d2646,   0xfc8883a0,   0xc1c7b6a3,
+            0x7f1524c3,   0x69cb7492,   0x47848a0b,   0x5692b285,   0x095bbf00,   0xad19489d,
+            0x1462b174,   0x23820e00,   0x58428d2a,   0x0c55f5ea,   0x1dadf43e,   0x233f7061,
+            0x3372f092,   0x8d937e41,   0xd65fecf1,   0x6c223bdb,   0x7cde3759,   0xcbee7460,
+            0x4085f2a7,   0xce77326e,   0xa6078084,   0x19f8509e,   0xe8efd855,   0x61d99735,
+            0xa969a7aa,   0xc50c06c2,   0x5a04abfc,   0x800bcadc,   0x9e447a2e,   0xc3453484,
+            0xfdd56705,   0x0e1e9ec9,   0xdb73dbd3,   0x105588cd,   0x675fda79,   0xe3674340,
+            0xc5c43465,   0x713e38d8,   0x3d28f89e,   0xf16dff20,   0x153e21e7,   0x8fb03d4a,
+            0xe6e39f2b,   0xdb83adf7 },{
+
+            0xe93d5a68,   0x948140f7,   0xf64c261c,   0x94692934,
+            0x411520f7,   0x7602d4f7,   0xbcf46b2e,   0xd4a20068,   0xd4082471,   0x3320f46a,
+            0x43b7d4b7,   0x500061af,   0x1e39f62e,   0x97244546,   0x14214f74,   0xbf8b8840,
+            0x4d95fc1d,   0x96b591af,   0x70f4ddd3,   0x66a02f45,   0xbfbc09ec,   0x03bd9785,
+            0x7fac6dd0,   0x31cb8504,   0x96eb27b3,   0x55fd3941,   0xda2547e6,   0xabca0a9a,
+            0x28507825,   0x530429f4,   0x0a2c86da,   0xe9b66dfb,   0x68dc1462,   0xd7486900,
+            0x680ec0a4,   0x27a18dee,   0x4f3ffea2,   0xe887ad8c,   0xb58ce006,   0x7af4d6b6,
+            0xaace1e7c,   0xd3375fec,   0xce78a399,   0x406b2a42,   0x20fe9e35,   0xd9f385b9,
+            0xee39d7ab,   0x3b124e8b,   0x1dc9faf7,   0x4b6d1856,   0x26a36631,   0xeae397b2,
+            0x3a6efa74,   0xdd5b4332,   0x6841e7f7,   0xca7820fb,   0xfb0af54e,   0xd8feb397,
+            0x454056ac,   0xba489527,   0x55533a3a,   0x20838d87,   0xfe6ba9b7,   0xd096954b,
+            0x55a867bc,   0xa1159a58,   0xcca92963,   0x99e1db33,   0xa62a4a56,   0x3f3125f9,
+            0x5ef47e1c,   0x9029317c,   0xfdf8e802,   0x04272f70,   0x80bb155c,   0x05282ce3,
+            0x95c11548,   0xe4c66d22,   0x48c1133f,   0xc70f86dc,   0x07f9c9ee,   0x41041f0f,
+            0x404779a4,   0x5d886e17,   0x325f51eb,   0xd59bc0d1,   0xf2bcc18f,   0x41113564,
+            0x257b7834,   0x602a9c60,   0xdff8e8a3,   0x1f636c1b,   0x0e12b4c2,   0x02e1329e,
+            0xaf664fd1,   0xcad18115,   0x6b2395e0,   0x333e92e1,   0x3b240b62,   0xeebeb922,
+            0x85b2a20e,   0xe6ba0d99,   0xde720c8c,   0x2da2f728,   0xd0127845,   0x95b794fd,
+            0x647d0862,   0xe7ccf5f0,   0x5449a36f,   0x877d48fa,   0xc39dfd27,   0xf33e8d1e,
+            0x0a476341,   0x992eff74,   0x3a6f6eab,   0xf4f8fd37,   0xa812dc60,   0xa1ebddf8,
+            0x991be14c,   0xdb6e6b0d,   0xc67b5510,   0x6d672c37,   0x2765d43b,   0xdcd0e804,
+            0xf1290dc7,   0xcc00ffa3,   0xb5390f92,   0x690fed0b,   0x667b9ffb,   0xcedb7d9c,
+            0xa091cf0b,   0xd9155ea3,   0xbb132f88,   0x515bad24,   0x7b9479bf,   0x763bd6eb,
+            0x37392eb3,   0xcc115979,   0x8026e297,   0xf42e312d,   0x6842ada7,   0xc66a2b3b,
+            0x12754ccc,   0x782ef11c,   0x6a124237,   0xb79251e7,   0x06a1bbe6,   0x4bfb6350,
+            0x1a6b1018,   0x11caedfa,   0x3d25bdd8,   0xe2e1c3c9,   0x44421659,   0x0a121386,
+            0xd90cec6e,   0xd5abea2a,   0x64af674e,   0xda86a85f,   0xbebfe988,   0x64e4c3fe,
+            0x9dbc8057,   0xf0f7c086,   0x60787bf8,   0x6003604d,   0xd1fd8346,   0xf6381fb0,
+            0x7745ae04,   0xd736fccc,   0x83426b33,   0xf01eab71,   0xb0804187,   0x3c005e5f,
+            0x77a057be,   0xbde8ae24,   0x55464299,   0xbf582e61,   0x4e58f48f,   0xf2ddfda2,
+            0xf474ef38,   0x8789bdc2,   0x5366f9c3,   0xc8b38e74,   0xb475f255,   0x46fcd9b9,
+            0x7aeb2661,   0x8b1ddf84,   0x846a0e79,   0x915f95e2,   0x466e598e,   0x20b45770,
+            0x8cd55591,   0xc902de4c,   0xb90bace1,   0xbb8205d0,   0x11a86248,   0x7574a99e,
+            0xb77f19b6,   0xe0a9dc09,   0x662d09a1,   0xc4324633,   0xe85a1f02,   0x09f0be8c,
+            0x4a99a025,   0x1d6efe10,   0x1ab93d1d,   0x0ba5a4df,   0xa186f20f,   0x2868f169,
+            0xdcb7da83,   0x573906fe,   0xa1e2ce9b,   0x4fcd7f52,   0x50115e01,   0xa70683fa,
+            0xa002b5c4,   0x0de6d027,   0x9af88c27,   0x773f8641,   0xc3604c06,   0x61a806b5,
+            0xf0177a28,   0xc0f586e0,   0x006058aa,   0x30dc7d62,   0x11e69ed7,   0x2338ea63,
+            0x53c2dd94,   0xc2c21634,   0xbbcbee56,   0x90bcb6de,   0xebfc7da1,   0xce591d76,
+            0x6f05e409,   0x4b7c0188,   0x39720a3d,   0x7c927c24,   0x86e3725f,   0x724d9db9,
+            0x1ac15bb4,   0xd39eb8fc,   0xed545578,   0x08fca5b5,   0xd83d7cd3,   0x4dad0fc4,
+            0x1e50ef5e,   0xb161e6f8,   0xa28514d9,   0x6c51133c,   0x6fd5c7e7,   0x56e14ec4,
+            0x362abfce,   0xddc6c837,   0xd79a3234,   0x92638212,   0x670efa8e,   0x406000e0 },{
+
+            0x3a39ce37,   0xd3faf5cf,   0xabc27737,   0x5ac52d1b,   0x5cb0679e,   0x4fa33742,
+            0xd3822740,   0x99bc9bbe,   0xd5118e9d,   0xbf0f7315,   0xd62d1c7e,   0xc700c47b,
+            0xb78c1b6b,   0x21a19045,   0xb26eb1be,   0x6a366eb4,   0x5748ab2f,   0xbc946e79,
+            0xc6a376d2,   0x6549c2c8,   0x530ff8ee,   0x468dde7d,   0xd5730a1d,   0x4cd04dc6,
+            0x2939bbdb,   0xa9ba4650,   0xac9526e8,   0xbe5ee304,   0xa1fad5f0,   0x6a2d519a,
+            0x63ef8ce2,   0x9a86ee22,   0xc089c2b8,   0x43242ef6,   0xa51e03aa,   0x9cf2d0a4,
+            0x83c061ba,   0x9be96a4d,   0x8fe51550,   0xba645bd6,   0x2826a2f9,   0xa73a3ae1,
+            0x4ba99586,   0xef5562e9,   0xc72fefd3,   0xf752f7da,   0x3f046f69,   0x77fa0a59,
+            0x80e4a915,   0x87b08601,   0x9b09e6ad,   0x3b3ee593,   0xe990fd5a,   0x9e34d797,
+            0x2cf0b7d9,   0x022b8b51,   0x96d5ac3a,   0x017da67d,   0xd1cf3ed6,   0x7c7d2d28,
+            0x1f9f25cf,   0xadf2b89b,   0x5ad6b472,   0x5a88f54c,   0xe029ac71,   0xe019a5e6,
+            0x47b0acfd,   0xed93fa9b,   0xe8d3c48d,   0x283b57cc,   0xf8d56629,   0x79132e28,
+            0x785f0191,   0xed756055,   0xf7960e44,   0xe3d35e8c,   0x15056dd4,   0x88f46dba,
+            0x03a16125,   0x0564f0bd,   0xc3eb9e15,   0x3c9057a2,   0x97271aec,   0xa93a072a,
+            0x1b3f6d9b,   0x1e6321f5,   0xf59c66fb,   0x26dcf319,   0x7533d928,   0xb155fdf5,
+            0x03563482,   0x8aba3cbb,   0x28517711,   0xc20ad9f8,   0xabcc5167,   0xccad925f,
+            0x4de81751,   0x3830dc8e,   0x379d5862,   0x9320f991,   0xea7a90c2,   0xfb3e7bce,
+            0x5121ce64,   0x774fbe32,   0xa8b6e37e,   0xc3293d46,   0x48de5369,   0x6413e680,
+            0xa2ae0810,   0xdd6db224,   0x69852dfd,   0x09072166,   0xb39a460a,   0x6445c0dd,
+            0x586cdecf,   0x1c20c8ae,   0x5bbef7dd,   0x1b588d40,   0xccd2017f,   0x6bb4e3bb,
+            0xdda26a7e,   0x3a59ff45,   0x3e350a44,   0xbcb4cdd5,   0x72eacea8,   0xfa6484bb,
+            0x8d6612ae,   0xbf3c6f47,   0xd29be463,   0x542f5d9e,   0xaec2771b,   0xf64e6370,
+            0x740e0d8d,   0xe75b1357,   0xf8721671,   0xaf537d5d,   0x4040cb08,   0x4eb4e2cc,
+            0x34d2466a,   0x0115af84,   0xe1b00428,   0x95983a1d,   0x06b89fb4,   0xce6ea048,
+            0x6f3f3b82,   0x3520ab82,   0x011a1d4b,   0x277227f8,   0x611560b1,   0xe7933fdc,
+            0xbb3a792b,   0x344525bd,   0xa08839e1,   0x51ce794b,   0x2f32c9b7,   0xa01fbac9,
+            0xe01cc87e,   0xbcc7d1f6,   0xcf0111c3,   0xa1e8aac7,   0x1a908749,   0xd44fbd9a,
+            0xd0dadecb,   0xd50ada38,   0x0339c32a,   0xc6913667,   0x8df9317c,   0xe0b12b4f,
+            0xf79e59b7,   0x43f5bb3a,   0xf2d519ff,   0x27d9459c,   0xbf97222c,   0x15e6fc2a,
+            0x0f91fc71,   0x9b941525,   0xfae59361,   0xceb69ceb,   0xc2a86459,   0x12baa8d1,
+            0xb6c1075e,   0xe3056a0c,   0x10d25065,   0xcb03a442,   0xe0ec6e0e,   0x1698db3b,
+            0x4c98a0be,   0x3278e964,   0x9f1f9532,   0xe0d392df,   0xd3a0342b,   0x8971f21e,
+            0x1b0a7441,   0x4ba3348c,   0xc5be7120,   0xc37632d8,   0xdf359f8d,   0x9b992f2e,
+            0xe60b6f47,   0x0fe3f11d,   0xe54cda54,   0x1edad891,   0xce6279cf,   0xcd3e7e6f,
+            0x1618b166,   0xfd2c1d05,   0x848fd2c5,   0xf6fb2299,   0xf523f357,   0xa6327623,
+            0x93a83531,   0x56cccd02,   0xacf08162,   0x5a75ebb5,   0x6e163697,   0x88d273cc,
+            0xde966292,   0x81b949d0,   0x4c50901b,   0x71c65614,   0xe6c6c7bd,   0x327a140a,
+            0x45e1d006,   0xc3f27b9a,   0xc9aa53fd,   0x62a80f00,   0xbb25bfe2,   0x35bdd2f6,
+            0x71126905,   0xb2040222,   0xb6cbcf7c,   0xcd769c2b,   0x53113ec0,   0x1640e3d3,
+            0x38abbd60,   0x2547adf0,   0xba38209c,   0xf746ce76,   0x77afa1c5,   0x20756060,
+            0x85cbfe4e,   0x8ae88dd8,   0x7aaaf9b0,   0x4cf9aa7e,   0x1948c25c,   0x02fb8a8c,
+            0x01c36ae4,   0xd6ebe1f9,   0x90d4f869,   0xa65cdea0,   0x3f09252d,   0xc208e69f,
+            0xb74e6132,   0xce77e25b,   0x578fdfe3,   0x3ac372e6 }};
 }
