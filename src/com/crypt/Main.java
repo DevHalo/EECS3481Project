@@ -5,6 +5,7 @@ import com.crypt.algorithms.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 public class Main {
@@ -12,7 +13,7 @@ public class Main {
     /**
      * The main entry point of the application
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws NoSuchAlgorithmException, IOException {
         switch (args.length) {
             case 0:
                 // If user supplies no arguments, show basic usage and option for more information
@@ -163,7 +164,7 @@ public class Main {
                             Utilities.cryptSymmetric(algorithm, f.getAbsolutePath(), key.getBytes(), encrypt);
                         } else {
                             // TODO
-                            Utilities.cryptAsymmetric(algorithm);
+                            Utilities.cryptAsymmetric(algorithm, f.getAbsolutePath(), key.getBytes(), encrypt);
                         }
 
                         System.out.printf("%s was successfully %s ", f.getName(),

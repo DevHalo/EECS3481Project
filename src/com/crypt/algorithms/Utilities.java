@@ -2,7 +2,7 @@ package com.crypt.algorithms;
 
 import java.io.*;
 import java.nio.file.*;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.List;
 import java.util.*;
 
@@ -23,7 +23,8 @@ public class Utilities {
     public static final String ENCRYPTED_EXTENSION = ".crypt";
     public static final boolean ENCRYPT = true;
     public static final boolean DECRYPT = false;
-
+    private static PrivateKey privateKey;
+    private static PublicKey publicKey;
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 249;
 
@@ -336,12 +337,17 @@ public class Utilities {
      * TODO
      * @param algorithm
      */
-    public static void cryptAsymmetric(String algorithm) {
+    public static void cryptAsymmetric(String algorithm, String fName, byte[] key, boolean encrypt) throws NoSuchAlgorithmException, IOException {
         if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
         // TODO: asymmetric
         // Note: Must implement checks for algorithms that require more than 1 secret.
-
-        throw new IllegalArgumentException();
+        switch (algorithm) {
+            case "RSA":
+                RSA.crypt(fName, key, encrypt);
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 
     /**
@@ -351,5 +357,32 @@ public class Utilities {
      */
     public static boolean isSymmetric(String algorithm) {
         return algorithm.matches("[-]?AES|[-]?XOR|[-]?BLOWFISH|[-]?RC4");
+    }
+
+    public static void RSAKeyPairGenerator() throws NoSuchAlgorithmException, IOException {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(1048576);
+        KeyPair pair = keyGen.generateKeyPair();
+        privateKey = pair.getPrivate();
+        publicKey = pair.getPublic();
+        writeKeysToFile("publicKey.txt", Base64.getEncoder().encodeToString(getPublicKey().getEncoded()));
+        writeKeysToFile("privateKey.txt", Base64.getEncoder().encodeToString(getPrivateKey().getEncoded()));
+    }
+
+    public static void writeKeysToFile(String path, String key) throws IOException {
+        File f = new File(path);
+//        f.getParentFile().mkdirs();
+        FileOutputStream fos = new FileOutputStream(f);
+        fos.write(key.getBytes());
+        fos.flush();
+        fos.close();
+    }
+
+    public static PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    public static PublicKey getPublicKey() {
+        return publicKey;
     }
 }
