@@ -196,7 +196,8 @@ public class Utilities {
         if (newFile.exists())
             deleteFile(newFile.toString());
 
-        oldFile.renameTo(newFile);
+        if (!oldFile.renameTo(newFile))
+            System.out.println("Failed to move " + oldFile.getName() + " to " + newFile.getName());
     }
 
     /**
@@ -302,52 +303,6 @@ public class Utilities {
             buffer.add(node);
 
         return buffer;
-    }
-
-    /**
-     * Performs the specified cipher algorithm
-     * @param algorithm Algorithm to use
-     * @param fName String file name
-     * @param key Key stream in bytes
-     * @param encrypt Encryption or decryption mode
-     */
-    public static void cryptSymmetric(String algorithm, String fName, byte[] key, boolean encrypt) {
-        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
-
-        switch (algorithm) {
-            case "AES":
-                AES.crypt(fName, key, encrypt);
-                break;
-            case "BLOWFISH":
-                BLOWFISH.crypt(fName, key, encrypt);
-                break;
-            case "RC4":
-                RC4.crypt(fName, key, encrypt);
-                break;
-            case "XOR":
-                XOR.crypt(fName, key, encrypt);
-                break;
-            default:
-                throw new IllegalArgumentException();
-        }
-    }
-
-    /**
-     * Performs the specified asymmetric cipher.
-     * TODO
-     * @param algorithm
-     */
-    public static void cryptAsymmetric(String algorithm, String fName, byte[] key, boolean encrypt) throws NoSuchAlgorithmException, IOException {
-        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
-        // TODO: asymmetric
-        // Note: Must implement checks for algorithms that require more than 1 secret.
-        switch (algorithm) {
-            case "RSA":
-                RSA.crypt(fName, key, encrypt);
-                break;
-            default:
-                throw new IllegalArgumentException();
-        }
     }
 
     /**

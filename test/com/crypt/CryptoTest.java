@@ -5,7 +5,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-import java.security.MessageDigest;
+import java.security.*;
 
 import com.crypt.algorithms.*;
 
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Random;
 
 public class CryptoTest {
@@ -212,7 +212,7 @@ public class CryptoTest {
      * Tests the AES encryption and decryption algorithm
      */
     @Test
-    @DisplayName("AEX Encryption and Decryption Test")
+    @DisplayName("AES Encryption and Decryption Test")
     void AESTest() {
         for (int i = 0; i < testFiles.length; i++) {
             File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
@@ -289,6 +289,212 @@ public class CryptoTest {
             assertDoesNotThrow(() ->
                     Main.main(new String[]{"-decrypt", "-i", fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION,
                             "-xor", key, "-f"}));
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+    }
+
+    @Test
+    @DisplayName("ECC Key Pair Generation Test")
+    void CommandLineTest2() {
+        assertDoesNotThrow(() ->
+                Main.main(new String[] {"-generate", "ECC"}));
+    }
+
+    @Test
+    @DisplayName("RSA Key Pair Generation Test")
+    void CommandLineTest3() {
+        assertDoesNotThrow(() ->
+                Main.main(new String[] {"-generate", "RSA"}));
+    }
+
+    @Test
+    @DisplayName("ECC Command Line Test")
+    void CommandLineTest4() {
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Test parameters include:
+            // Encryption and Decryption of each file in the test folder, using XOR. User confirmation is skipped.
+            assertDoesNotThrow(() ->
+                    Main.main(new String[]{"-encrypt", "-i", fileName.getAbsolutePath(), "-xor", key, "-f"}));
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+
+            assertDoesNotThrow(() ->
+                    Main.main(new String[]{"-decrypt", "-i", fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION,
+                            "-xor", key, "-f"}));
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+    }
+
+    @Test
+    @DisplayName("ECC Encryption and Decryption Test")
+    void ECCTest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            // Generate key pairs
+            KeyPair a_pair = ECC.generateECCPair();
+            KeyPair b_pair = ECC.generateECCPair();
+
+            if (a_pair == null || b_pair == null) fail();
+
+            byte[] aPrivate = Base64.getEncoder().encode(a_pair.getPrivate().getEncoded());
+            byte[] aPublic = Base64.getEncoder().encode(a_pair.getPublic().getEncoded());
+
+            byte[] bPrivate = Base64.getEncoder().encode(b_pair.getPrivate().getEncoded());
+            byte[] bPublic = Base64.getEncoder().encode(b_pair.getPublic().getEncoded());
+
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Encrypt using person a's private key
+            try {
+                ECC.crypt(fileName.toString(), aPrivate, bPublic, Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+
+            // Decrypt using person b's private key
+            try {
+                ECC.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                        bPrivate, aPublic, Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+    }
+
+    @Test
+    @DisplayName("ECC Encryption and Decryption Test using Command Line")
+    void ECCTest2() {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(os);
+        PrintStream old = System.out;
+
+        System.setOut(ps);
+
+        assertDoesNotThrow(() ->
+                Main.main(new String[] {"-generate", "ECC"}));
+
+        assertDoesNotThrow(() ->
+                Main.main(new String[] {"-generate", "ECC"}));
+
+        System.out.flush();
+        System.setOut(old);
+
+        String[] str = os.toString().split("\r\n");
+
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Encrypt using person a's private key
+            try {
+                ECC.crypt(fileName.toString(), str[1].getBytes(), str[7].getBytes(), Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+
+            // Decrypt using person b's private key
+            try {
+                ECC.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                        str[5].getBytes(), str[3].getBytes(), Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+    }
+
+    @Test
+    @DisplayName("RSA Encryption and Decryption Test")
+    void RSATest() {
+        for (int i = 0; i < testFiles.length; i++) {
+            // Generate key pair
+            KeyPair pair = RSA.generateRSAPair(1024);
+
+            if (pair == null) fail();
+
+            byte[] privateBytes = Base64.getEncoder().encode(pair.getPrivate().getEncoded());
+            byte[] publicBytes = Base64.getEncoder().encode(pair.getPublic().getEncoded());
+
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Encrypt using public key
+            try {
+                RSA.crypt(fileName.toString(), publicBytes, Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+
+            // Decrypt using private key
+            try {
+                RSA.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, privateBytes, Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+    }
+
+    @Test
+    @DisplayName("RSA Encryption and Decryption Test using Command Line")
+    void RSATest2() {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(os);
+        PrintStream old = System.out;
+
+        System.setOut(ps);
+
+        assertDoesNotThrow(() ->
+                Main.main(new String[] {"-generate", "RSA"}));
+
+        System.out.flush();
+        System.setOut(old);
+
+        String[] str = os.toString().split("\r\n");
+
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+
+            // Encrypt using public key
+            try {
+                RSA.crypt(fileName.toString(), str[3].getBytes(), Utilities.ENCRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+
+            // Decrypt using private key
+            try {
+                RSA.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
+                        str[1].getBytes(), Utilities.DECRYPT);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
 
             VerifySHA1(fileName, sha1s[i], false);
         }
