@@ -240,15 +240,27 @@ public class CryptoTest {
     }
 
     /**
-     * Tests the Blowfish encryption and decryption algorithm
+     * Tests the Blowfish encryption and decryption algorithm and compares to Java API's encryption hash
      */
     @Test
     @DisplayName("Blowfish Encryption and Decryption Test")
     void BlowfishTest() {
+        byte[] IV = Utilities.getIV(8);
+        String[] javaEncSha1s = new String[testFiles.length];
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA1");
+        } catch (NoSuchAlgorithmException e) {
+            return;
+        }
+        md.reset();
+
+        // JAVA API IMPLEM
         for (int i = 0; i < testFiles.length; i++) {
             File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
             try {
-                BLOWFISH.cryptAPI(fileName.toString(), key.getBytes(StandardCharsets.UTF_8), Utilities.ENCRYPT);
+                BLOWFISH.crypt(fileName.toString(), key.getBytes(StandardCharsets.UTF_8),
+                        Utilities.ENCRYPT, BLOWFISH.Mode.CBC, IV);
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to encrypt file " + fileName.toString());
@@ -256,10 +268,45 @@ public class CryptoTest {
 
             VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
                     sha1s[i], true);
+            try {
+                javaEncSha1s[i] = ByteToHexString(md.digest(
+                        Files.readAllBytes(new File((fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION)).toPath())));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
             try {
-                BLOWFISH.cryptAPI(fileName.toString() + Utilities.ENCRYPTED_EXTENSION,
-                        key.getBytes(StandardCharsets.UTF_8), Utilities.DECRYPT);
+                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(StandardCharsets.UTF_8),
+                        Utilities.DECRYPT, BLOWFISH.Mode.CBC, IV);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to decrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(fileName, sha1s[i], false);
+        }
+
+        // OUR IMPLEM
+        for (int i = 0; i < testFiles.length; i++) {
+            File fileName = new File(WORKING_DIRECTORY + testFiles[i].getName());
+            try {
+                BLOWFISH.crypt(fileName.toString(), key.getBytes(StandardCharsets.UTF_8),
+                        Utilities.ENCRYPT, BLOWFISH.Mode.CBC, IV);
+            } catch (Exception e) {
+                e.printStackTrace();
+                fail("Failed to encrypt file " + fileName.toString());
+            }
+
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    sha1s[i], true);
+            VerifySHA1(new File(fileName.getAbsolutePath() + Utilities.ENCRYPTED_EXTENSION),
+                    javaEncSha1s[i], false);
+
+            try {
+                BLOWFISH.crypt(fileName.toString() + Utilities.ENCRYPTED_EXTENSION, key.getBytes(StandardCharsets.UTF_8),
+                        Utilities.DECRYPT, BLOWFISH.Mode.CBC, IV);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 fail("Failed to decrypt file " + fileName.toString());

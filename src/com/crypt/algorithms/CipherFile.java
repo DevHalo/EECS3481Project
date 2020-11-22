@@ -13,16 +13,15 @@ public class CipherFile {
 
     private static final int MAX_BULK_SIZE = Integer.MAX_VALUE - 127;
 
-    private String filePath;
-    private int blockSize;
+    private final String filePath;
+    private final int blockSize;
+    private final boolean isEncryption;
 
     private long fileLength;
     private long currentPos = 0;
 
-    private RandomAccessFile inFile;
-
-    private Path temp;
-    private RandomAccessFile tempOutFile;
+    private final Path tempPath;
+    private final RandomAccessFile tempFile;
 
     /**
      * Creates new CipherFile
@@ -31,18 +30,21 @@ public class CipherFile {
      * @throws IOException if files could not be read
      * @throws IllegalBlockSizeException if block size is too large
      */
-    public CipherFile (String filePath, int blockSize) throws IOException, IllegalBlockSizeException {
+    public CipherFile (String filePath, int blockSize, boolean isEncryption) throws IOException, IllegalBlockSizeException {
+
         if (blockSize > MAX_BULK_SIZE) throw new IllegalBlockSizeException("Block is too large");
 
         this.filePath = filePath;
         this.blockSize = blockSize;
+        this.isEncryption = isEncryption;
 
         File file = new File(filePath);
-        inFile = new RandomAccessFile(file, "r");
-        this.fileLength = inFile.length();
 
-        temp = Files.createTempFile(file.getName(), null);
-        tempOutFile = new RandomAccessFile(temp.toFile(), "rw");
+        this.tempPath = Files.createTempFile(file.getName(), null);
+        Files.copy(Paths.get(filePath), this.tempPath, StandardCopyOption.REPLACE_EXISTING);
+
+        this.tempFile = new RandomAccessFile(this.tempPath.toFile(), "rw");
+        this.fileLength = this.tempFile.length();
     }
 
     /**
@@ -55,7 +57,7 @@ public class CipherFile {
 
     /**
      * Gets next block of bytes from file
-     * @param encryption
+     * @param encryption Determines direction (true->forward, false->reverse)
      * @return Next block of bytes, null if at EOF
      */
     public byte[] nextBlock(boolean encryption) {
@@ -77,12 +79,47 @@ public class CipherFile {
         currentPos = 0;
     }
 
+    public long getCurrentPos() {
+        return currentPos;
+    }
+
     /**
      * Sets current pos
      * @param pos The position to set to. If pos > fileLength, pos is set to fileLength
      */
     public void seekTo(long pos) {
         currentPos = Math.min(pos, fileLength);
+    }
+
+    /**
+     * Pads the file using PKCS#5. (BLOCK SIZE MUST BE < 255 bytes
+     */
+    public void pad() {
+        byte padding = (byte) (blockSize - (fileLength % blockSize));
+        if (padding == 0) padding = (byte)blockSize;
+        byte[] pad = new byte[padding];
+        for (byte i = 0; i < padding; i++)
+            pad[i] = padding;
+        writeDataEOF(pad);
+    }
+
+    /**
+     * Unpads the file
+     */
+    public void unpad() {
+
+        byte padding = readDataAtOffset(1, true, 1)[0];
+        byte[] pad = readDataAtOffset(padding, true, padding);
+
+        // Verify padding
+        for (byte p : pad) {
+            if (p != padding) {
+                System.out.println("File was not padded correctly. Aborting decryption.");
+                System.exit(-1);
+            }
+        }
+
+        this.truncate(padding);
     }
 
     /**
@@ -101,10 +138,11 @@ public class CipherFile {
         byte[] data = new byte[blockSize];
 
         try {
-            inFile.seek(reverse ? this.fileLength - offset : offset);
-            inFile.read(data, 0, blockSize);
+            tempFile.seek(reverse ? this.fileLength - offset : offset);
+            tempFile.read(data, 0, blockSize);
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
 
         return data;
@@ -118,24 +156,25 @@ public class CipherFile {
      */
     public void writeDataAtOffset(byte[] buffer, long offset, boolean reverse) {
         try {
-            tempOutFile.seek(reverse ? tempOutFile.length() - offset : offset);
-            tempOutFile.write(buffer);
+            long pos = reverse ? tempFile.length() - offset : offset;
+            tempFile.seek(pos);
+            tempFile.write(buffer);
+            fileLength = Math.max(pos+buffer.length, fileLength);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     /**
-     * Writes data at EOF to temporary file. Will overwrite if overlapped. Use finish() to complete.
+     * Writes data to EOF to temporary file. Use finish() to complete.
      * @param buffer The data to write
      */
-    public void writeData(byte[] buffer) {
+    public void writeDataEOF(byte[] buffer) {
         writeDataAtOffset(buffer, 0, true);
     }
 
     /**
-     * Pseudo-truncation. Reader will ignore these bytes
-     *
+     * Pseudo-truncation. Reader will ignore these bytes. Bytes are truncated on finish() call
      * @param size The number of bytes to truncate
     */
     public void truncate(long size) {
@@ -144,44 +183,27 @@ public class CipherFile {
 
     /**
      * Replaces file with its encryption/decryption
-     * @param encryption Adds crypt ext if true, else removes crypt ext
      * @return True if successful
      */
-    public boolean finish(boolean encryption) {
+    public boolean finish() {
         try {
             Path newFilePath = Paths.get(
-                    encryption ?
+                    this.isEncryption ?
                     Utilities.setEncryptedExtension(filePath)
                     :
                     Utilities.setNormalExtension(filePath)
             );
 
-            Files.copy(temp, newFilePath, StandardCopyOption.REPLACE_EXISTING);
+            tempFile.setLength(fileLength);
+            Files.copy(tempPath, newFilePath, StandardCopyOption.REPLACE_EXISTING);
 
-            tempOutFile.close();
-            inFile.close();
+            tempFile.close();
             Utilities.deleteFile(this.filePath);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-    }
-
-    /**
-     * Alternate for finish(true)
-     * @return True if successful
-     */
-    public boolean finishEncryption() {
-        return finish(true);
-    }
-
-    /**
-     * Alternate for finish(false)
-     * @return True if successful
-     */
-    public boolean finishDecryption() {
-        return finish(false);
     }
 
 }
