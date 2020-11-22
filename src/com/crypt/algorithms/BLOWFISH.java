@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 // Implementation of the Blowfish algorithm
 public class BLOWFISH {
@@ -17,28 +18,30 @@ public class BLOWFISH {
     public enum Mode { ECB, CBC }
 
     private static final int BLOCK_SIZE = 8;
-    private static final long POWER32 = 1L << 32;
-    private static byte[] pKey = null;
-    private static String userIV = null;
+    private static int[] pKey = null;
+    private static int[][] sBox = null;
+    private static byte[] userIV = null;
 
-    public static void crypt(String filePath, byte[] key, boolean isEncryption, Mode mode, String initVector) {
+    public static void crypt(String filePath, byte[] key, boolean isEncryption, Mode mode, byte[] initVector) {
         CipherFile file;
         try {
-            file = new CipherFile(filePath, BLOCK_SIZE);
+            file = new CipherFile(filePath, BLOCK_SIZE, isEncryption);
         } catch (IOException e) {
             System.out.println("Couldn't read file " + filePath);
             e.printStackTrace();
             return;
         } catch (IllegalBlockSizeException ignored) { return; }
 
-        if (pKey == null) pKey = generatePArray(key);
+        if (pKey == null || sBox == null) doKeySchedule(key);
         if (mode == Mode.CBC && initVector != null) userIV = initVector;
 
-
-
-        byte[] IV = userIV == null ? Utilities.getIV(BLOCK_SIZE) : userIV.getBytes();
+        byte[] IV = userIV == null ?
+                (isEncryption ? Utilities.getIV(BLOCK_SIZE) : file.readDataAtOffset(BLOCK_SIZE, true, BLOCK_SIZE))
+                :
+                userIV;
 
         if (isEncryption) {
+            file.pad();
             byte[] lastBlock = IV;
             while (file.hasNext()) {
                 byte[] block = file.nextBlock(true);
@@ -47,91 +50,189 @@ public class BLOWFISH {
                         block[i] ^= lastBlock[i];
                 }
                 lastBlock = encrypt(block);
-                file.writeData(lastBlock);
+                file.writeDataAtOffset(lastBlock, file.getCurrentPos() - BLOCK_SIZE, false);
             }
-            file.writeData(IV);
+            file.writeDataEOF(IV);
 
         } else {
-            byte[] nextBlock;
-            // TODO
-            decrypt(null);
+            file.truncate(BLOCK_SIZE); //clear IV
+
+            byte[] block, lastBlock, nextBlock;
+            boolean finalBlock = false;
+
+            nextBlock = file.nextBlock(false);
+
+            while (!finalBlock && nextBlock != null) {
+                block = nextBlock;
+                lastBlock = decrypt(block);
+
+                if (file.hasNext())
+                    nextBlock = file.nextBlock(false);
+                else {
+                    nextBlock = IV;
+                    finalBlock = true;
+                }
+
+                if (mode == Mode.CBC) {
+                    for (int i = 0; i < block.length; i++)
+                        block[i] ^= nextBlock[i];
+                }
+
+                if (finalBlock)
+                    file.writeDataAtOffset(lastBlock, (file.getCurrentPos())+lastBlock.length, true);
+                else
+                file.writeDataAtOffset(lastBlock, (file.getCurrentPos()-8)+lastBlock.length, true);
+            }
+
+            file.unpad();
         }
+
+        if(!file.finish())
+            System.out.println("Failed to write to file.");
     }
 
     private static byte[] encrypt(byte[] block) {
-        // TODO
-        return null;
+        long in = byteBlockToLong(block);
+
+        int L = (int) (in >>> 32);
+        int R = (int) (in & 0xFFFFFFFFL);
+
+        //do 16 rounds
+        for (int i = 0 ; i < 16 ; i += 2) {
+            L ^= pKey[i];
+            R ^= f(L);
+            R ^= pKey[i+1];
+            L ^= f(R);
+        }
+        L ^= pKey[16];
+        R ^= pKey[17];
+
+        // rebuild and return block with L and R swapped
+        return longToByteBlock(((long)R << 32 | (long)L));
+    }
+
+    private static long encrypt(long block) {
+        return byteBlockToLong(encrypt(longToByteBlock(block)));
     }
 
     private static byte[] decrypt(byte[] block) {
-        // TODO
-        return null;
+        long in = byteBlockToLong(block);
+
+        int L = (int) (in >>> 32);
+        int R = (int) (in & 0xFFFFFFFFL);
+
+        for (int i=16 ; i > 0 ; i -= 2) {
+            L ^= pKey[i+1];
+            R ^= f(L);
+            R ^= pKey[i];
+            L ^= f(R);
+        }
+        L ^= pKey[1];
+        R ^= pKey[0];
+
+        // rebuild and return block with L and R swapped
+        return longToByteBlock(((long)R << 32 | (long)L));
+    }
+
+    private static long decrypt(long block) {
+        return byteBlockToLong(decrypt(longToByteBlock(block)));
+    }
+
+    private static int f(int x) {
+        // Java handles overflow addition as modulo 2^32, so we don't need to manually
+        int h = sBox[0][x >>> 24] + sBox[1][(x >>> 16) & 0xFF];
+        return (h ^ S[2][(x >>> 8) & 0xFF]) + S[3][x & 0xFF];
+    }
+
+    private static void doKeySchedule(byte[] key) {
+        // init boxes
+        pKey = Arrays.copyOf(P, P.length);
+        sBox = new int[S.length][];
+        for (int i = 0; i < sBox.length; i++) sBox[i] = Arrays.copyOf(S[i], S[i].length);
+
+        // XOR p-boxes with KEY
+        for (byte i = 0, keypos = 0; i < pKey.length; i++) {
+            // break P ints into 4 bytes
+            int pC = pKey[i];
+            for (byte j = 0; j < Integer.BYTES; j++, keypos%=key.length)
+                pC = pC << 8 | Byte.toUnsignedInt(key[keypos++]);
+            pKey[i] ^= pC;
+        }
+
+        long zeroE = 0;
+        // Replace P[n] with L zE and P[n+1] with R zE
+        for (int i = 0; i < pKey.length / 2; i++) {
+            zeroE = encrypt(zeroE);
+            pKey[i*2] = (int) (zeroE >>> 32); // get left bits
+            pKey[i*2 + 1] = (int) (zeroE & 0xFFFFFFFFL); //get right bits (unsigned)
+        }
+        // Same for S boxes
+        for (int i = 0; i < sBox.length; i++) {
+            for (int j = 0; j < sBox[i].length / 2; j++) {
+                zeroE = encrypt(zeroE);
+                sBox[i][j * 2] = (int) (zeroE >>> 32); // get left bits
+                sBox[i][j * 2 + 1] = (int) (zeroE & 0xFFFFFFFFL); //get right bits (unsigned)
+            }
+        }
     }
 
 
-    private static byte f(byte x) {
-        // TODO
-        return 0;
-//        uint32_t h = S[0][x >> 24] + S[1][x >> 16 & 0xff];
-//        return ( h ^ S[2][x >> 8 & 0xff] ) + S[3][x & 0xff];
+    public static byte[] longToByteBlock(long lng) {
+        byte[] bytes = new byte[8];
+        for (int i = 7; i >= 0; i--) {
+            bytes[i] = (byte)(lng & 0xFF);
+            lng >>= 8;
+        }
+        return bytes;
     }
 
-    private static byte[] generatePArray(byte[] key) {
-
-        int currKeyByte = 0;
-        byte[] PKey = new byte[P.length];
-
-        return PKey;
+    public static long byteBlockToLong(final byte[] bytes) {
+        long lng = 0;
+        for (int i = 0; i < 8; i++) {
+            lng <<= 8;
+            lng |= Byte.toUnsignedLong(bytes[i]);
+        }
+        return lng;
     }
 
     ////////////////
     /// USING API///
     ////////////////
 
-    public static void cryptAPI(String filePath, byte[] key, boolean isEncryption) {
-        if (isEncryption) encryptAPI(filePath, key);
+    public static void cryptAPI(String filePath, byte[] key, boolean isEncryption, byte[] initVector) {
+
+        if (isEncryption) encryptAPI(filePath, key, initVector);
         else decryptAPI(filePath, key);
     }
 
-    private static void encryptAPI(String filePath, byte[] key)  {
+    private static void encryptAPI(String filePath, byte[] key, byte[] IV)  {
 
         try {
             Cipher blowfish = Cipher.getInstance("Blowfish/CBC/NoPadding");
             int blowBlockSize = blowfish.getBlockSize();
 
-            CipherFile file = new CipherFile(filePath, blowBlockSize);
+            CipherFile file = new CipherFile(filePath, blowBlockSize, true);
+            file.pad();
 
             byte[] toEncrypt = file.readDataAtOffset(0, false, Integer.MAX_VALUE - 500);
-            byte[] iv = Utilities.getIV(blowBlockSize);
+            byte[] iv = IV == null ?
+                    Utilities.getIV(BLOCK_SIZE)
+                    :
+                    userIV;
 
             SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
 
             blowfish.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
 
-            int numPadding = blowBlockSize - (toEncrypt.length % blowBlockSize);
-            if (numPadding == 8) numPadding = 0;
-
-            // Copy input into pad-sized array. If it wasn't padded, we don't need to copy.
-            byte[] paddedToEncrypt;
-            if (numPadding == 0) {
-                paddedToEncrypt = toEncrypt;
-            } else {
-                paddedToEncrypt = new byte[toEncrypt.length + numPadding];
-                System.arraycopy(toEncrypt, 0, paddedToEncrypt, 0, toEncrypt.length);
-            }
-
             // Do encryption
-            byte[] encrypted = blowfish.doFinal(paddedToEncrypt);
+            byte[] encrypted = blowfish.doFinal(toEncrypt);
 
-            // write encrypted text to file then append to EOF the number of padding used followed by the IV used
-            byte[] padAndIV = new byte[1 + iv.length];
-            System.arraycopy(iv, 0, padAndIV, 1, iv.length);
-            padAndIV[0] = (byte) numPadding;
+            file.writeDataAtOffset(encrypted, 0, false);
+            file.writeDataEOF(iv);
 
-            file.writeData(encrypted);
-            file.writeData(padAndIV);
-            file.finishEncryption();
+            if(!file.finish())
+                System.out.println("Failed to write to file.");
 
         } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
                 InvalidAlgorithmParameterException | InvalidKeyException e) {
@@ -147,16 +248,11 @@ public class BLOWFISH {
 
             int blowBlockSize = blowfish.getBlockSize();
 
-            CipherFile file = new CipherFile(filePath, blowBlockSize);
+            CipherFile file = new CipherFile(filePath, blowBlockSize, false);
 
-            // Read num of padding and IV from the EOF, then truncate
-            byte[] padAndIV = file.readDataAtOffset(1 + blowBlockSize, true, 1 + blowBlockSize);
-
-            int numPadding = padAndIV[0] & 0xFF;
-            byte[] iv = new byte[blowBlockSize];
-            System.arraycopy(padAndIV, 1, iv, 0, iv.length);
-
-            file.truncate(padAndIV.length);
+            // Read IV from the EOF, then truncate
+            byte[] iv = file.readDataAtOffset(blowBlockSize, true, blowBlockSize);
+            file.truncate(iv.length);
 
             SecretKeySpec keySpec = new SecretKeySpec(key, "Blowfish");
             IvParameterSpec ivSpec = new IvParameterSpec(iv);
@@ -166,17 +262,12 @@ public class BLOWFISH {
             blowfish.init(Cipher.DECRYPT_MODE, keySpec, ivSpec);
             byte[] decrypted = blowfish.doFinal(toDecrypt);
 
-            // Un-pad if necessary
-            byte[] decryptedUnpadded;
-            if (numPadding == 0) {
-                decryptedUnpadded = decrypted;
-            } else {
-                decryptedUnpadded = new byte[decrypted.length - numPadding];
-                System.arraycopy(decrypted, 0, decryptedUnpadded, 0, decryptedUnpadded.length);
-            }
+            file.writeDataAtOffset(decrypted, 0, false);
 
-            file.writeData(decryptedUnpadded);
-            file.finishDecryption();
+            file.unpad();
+
+            if(!file.finish())
+                System.out.println("Failed to write to file.");
 
         } catch (IOException | NoSuchPaddingException | NoSuchAlgorithmException | BadPaddingException | IllegalBlockSizeException |
                 InvalidAlgorithmParameterException | InvalidKeyException e) {
