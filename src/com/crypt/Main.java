@@ -212,7 +212,8 @@ public class Main {
                                     AES.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
                                     break;
                                 case "BLOWFISH":
-                                    BLOWFISH.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                    BLOWFISH.crypt(f.getAbsolutePath(), key.getBytes(), encrypt, BLOWFISH.Mode.CBC,
+                                            null);
                                     break;
                                 case "RC4":
                                     RC4.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
