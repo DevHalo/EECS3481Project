@@ -5,6 +5,7 @@ import com.crypt.algorithms.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.KeyPair;
 import java.util.*;
 
 public class Main {
@@ -27,7 +28,9 @@ public class Main {
                             "You can skip this by using -force or -f.\n" +
                             "-dry will run the program, " +
                             "but not execute any of the encryption algorithms.\n" +
-                            "Input can be specified using -i or -input followed by the file or folder.\n");
+                            "Input can be specified using -i or -input followed by the file or folder.\n" +
+                            "RSA and ECC key value pairs can be generated via the -generate parameter. See " +
+                            "-help-generate for more information.\n");
 
                     System.out.printf("When encrypting files, the extension %1$s will be appended to the file name. " +
                             "(test.txt%1$s)\n", Utilities.ENCRYPTED_EXTENSION);
@@ -42,7 +45,50 @@ public class Main {
                             "| XOR       |            |\n" +
                             "+-----------+------------+");
                     keyRequirements("", "");
+                } else if (args[0].toUpperCase().equals("-HELP-GENERATE")) {
+                    System.out.println("This application allows the generation of RSA and ECC keys.\n" +
+                            "Typing -generate RSA will give you a RSA public and private key pair.\n" +
+                            "You can specify an key size in bits (-generate RSA 2048). Default is 1024.\n" +
+                            "Typing -generate ECC will give you an ECC public and private key pair." +
+                            "Please note that ECC only supports 256-bit keys.\n");
+
                 } else System.out.println("Not enough parameters. Did you mean -help?");
+                break;
+            case 2:
+            case 3:
+                if (args[0].toUpperCase().equals("-GENERATE")) {
+                    if (args[1].toUpperCase().equals("RSA")) {
+                        KeyPair kp;
+
+                        if (args.length > 2) {
+                            kp = RSA.generateRSAPair(Integer.parseInt(args[2]));
+                        } else {
+                            kp = RSA.generateRSAPair(1024);
+                        }
+
+                        if (kp == null) {
+                            System.out.println("Could not generate keys.");
+                            return;
+                        }
+
+                        System.out.println("Here are your RSA Keys:\nPrivate Key in PKCS#8:");
+                        System.out.println(Base64.getEncoder().encodeToString(kp.getPrivate().getEncoded()));
+                        System.out.println("Public Key in X.509:");
+                        System.out.println(Base64.getEncoder().encodeToString(kp.getPublic().getEncoded()));
+                    } else if (args[1].toUpperCase().equals("ECC")) {
+                        KeyPair kp = ECC.generateECCPair();
+
+                        if (kp == null) {
+                            System.out.println("Could not generate keys.");
+                            return;
+                        }
+
+                        System.out.println("Here are your ECC Keys:\nPrivate Key in PKCS#8:");
+                        System.out.println(Base64.getEncoder().encodeToString(kp.getPrivate().getEncoded()));
+                        System.out.println("Public Key in X.509:");
+                        System.out.println(Base64.getEncoder().encodeToString(kp.getPublic().getEncoded()));
+                    }
+                } else System.out.println("Did you mean -generate?");
                 break;
             default:
                 // Encrypt or Decrypt
@@ -159,11 +205,32 @@ public class Main {
                             continue;
                         }
 
+                        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
                         if (Utilities.isSymmetric(algorithm)) {
-                            Utilities.cryptSymmetric(algorithm, f.getAbsolutePath(), key.getBytes(), encrypt);
+                            switch (algorithm) {
+                                case "AES":
+                                    AES.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                    break;
+                                case "BLOWFISH":
+                                    BLOWFISH.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                    break;
+                                case "RC4":
+                                    RC4.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                    break;
+                                case "XOR":
+                                    XOR.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException();
+                            }
                         } else {
                             // TODO
-                            Utilities.cryptAsymmetric(algorithm);
+                            if (algorithm.equals("RSA")) {
+                                RSA.crypt(f.getAbsolutePath(), key.getBytes(), encrypt);
+                            } else if (algorithm.equals("ECC")) {
+                                String publicKey = args[algoIndex + 1];
+                                ECC.crypt(f.getAbsolutePath(), key.getBytes(), publicKey.getBytes(), encrypt);
+                            }
                         }
 
                         System.out.printf("%s was successfully %s ", f.getName(),
@@ -200,9 +267,9 @@ public class Main {
             put("XOR",
                     "| XOR      |      1      |     n       | At least 1 byte (8+ bits)                         |\n");
             put("RSA",
-                    "| RSA      |      64     |     n       | At least 64 bytes (512+ bits)                     |\n");
+                    "| RSA      |      64     |     n       | At least 64 bytes (512+ bits, 2048 Recommended)   |\n");
             put("ECC",
-                    "| ECC      |      128    |     n       | At least 512 bytes (1024+ bit RSA/DSA equivalent) |\n");
+                    "| ECC      |            256            | Exactly 256 bytes                                 |\n");
         }};
 
         Map<String, int[]> keyRanges = new LinkedHashMap<String, int[]>() {{
@@ -210,7 +277,8 @@ public class Main {
            put("BLOWFISH", new int[] {8, 2048});
            put("RC4", new int[] {1, Integer.MAX_VALUE});
            put("RSA", new int[] {64, Integer.MAX_VALUE});
-           put("ECC", new int[] {128, Integer.MAX_VALUE});
+           put("ECC", new int[] {32, 32});
+           put("XOR", new int[] {1, Integer.MAX_VALUE});
         }};
 
         if (algorithm.isEmpty()) {
@@ -229,6 +297,7 @@ public class Main {
             System.exit(0);
         } else if ((key.length() < keyRanges.get(algorithm)[0] || key.length() > keyRanges.get(algorithm)[1]) ||
                 (algorithm.equals("AES") && key.length() != 16 && key.length() != 24 && key.length() != 32) ||
+                (algorithm.equals("ECC") && key.length() != 32) ||
                 key.toUpperCase().equals("-INPUT")) {
 
             System.out.println("Key supplied did not satisfy requirements. See below:\n");
@@ -256,7 +325,7 @@ public class Main {
                 "| -RC4      |      1-256 |               |                 | mode before the | executing any |\n" +
                 "| -XOR      |        1-n |               |                 | algorithm is    | of the        |\n" +
                 "| -RSA      |       64-n |               |                 | executed        | algorithms    |\n" +
-                "| -ECC      |      163-n |               |                 |                 |               |\n" +
+                "| -ECC      |         32 |               |                 |                 |               |\n" +
                 "+-----------+------------+---------------+-----------------+-----------------+---------------+\n" +
                 "| Example:  -AES 0123456789ABCDEF -input test.txt -encrypt -f                                |\n" +
                 "|           -AES 0123456789ABCDEF -input test.txt -decrypt -f                                |\n" +

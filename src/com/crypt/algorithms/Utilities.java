@@ -2,7 +2,7 @@ package com.crypt.algorithms;
 
 import java.io.*;
 import java.nio.file.*;
-import java.security.SecureRandom;
+import java.security.*;
 import java.util.List;
 import java.util.*;
 
@@ -23,7 +23,8 @@ public class Utilities {
     public static final String ENCRYPTED_EXTENSION = ".crypt";
     public static final boolean ENCRYPT = true;
     public static final boolean DECRYPT = false;
-
+    private static PrivateKey privateKey;
+    private static PublicKey publicKey;
     //Max Path length in Windows
     private static final int MAX_PATH_LENGTH = 249;
 
@@ -195,7 +196,8 @@ public class Utilities {
         if (newFile.exists())
             deleteFile(newFile.toString());
 
-        oldFile.renameTo(newFile);
+        if (!oldFile.renameTo(newFile))
+            System.out.println("Failed to move " + oldFile.getName() + " to " + newFile.getName());
     }
 
     /**
@@ -304,52 +306,38 @@ public class Utilities {
     }
 
     /**
-     * Performs the specified cipher algorithm
-     * @param algorithm Algorithm to use
-     * @param fName String file name
-     * @param key Key stream in bytes
-     * @param encrypt Encryption or decryption mode
-     */
-    public static void cryptSymmetric(String algorithm, String fName, byte[] key, boolean encrypt) {
-        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
-
-        switch (algorithm) {
-            case "AES":
-                AES.crypt(fName, key, encrypt);
-                break;
-            case "BLOWFISH":
-                BLOWFISH.crypt(fName, key, encrypt, BLOWFISH.Mode.CBC, null);
-                break;
-            case "RC4":
-                RC4.crypt(fName, key, encrypt);
-                break;
-            case "XOR":
-                XOR.crypt(fName, key, encrypt);
-                break;
-            default:
-                throw new IllegalArgumentException();
-        }
-    }
-
-    /**
-     * Performs the specified asymmetric cipher.
-     * TODO
-     * @param algorithm
-     */
-    public static void cryptAsymmetric(String algorithm) {
-        if (algorithm.startsWith("-")) algorithm = algorithm.substring(1);
-        // TODO: asymmetric
-        // Note: Must implement checks for algorithms that require more than 1 secret.
-
-        throw new IllegalArgumentException();
-    }
-
-    /**
      * Returns true if the specified algorithm is symmetric
      * @param algorithm
      * @return
      */
     public static boolean isSymmetric(String algorithm) {
         return algorithm.matches("[-]?AES|[-]?XOR|[-]?BLOWFISH|[-]?RC4");
+    }
+
+    public static void RSAKeyPairGenerator() throws NoSuchAlgorithmException, IOException {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(1048576);
+        KeyPair pair = keyGen.generateKeyPair();
+        privateKey = pair.getPrivate();
+        publicKey = pair.getPublic();
+        writeKeysToFile("publicKey.txt", Base64.getEncoder().encodeToString(getPublicKey().getEncoded()));
+        writeKeysToFile("privateKey.txt", Base64.getEncoder().encodeToString(getPrivateKey().getEncoded()));
+    }
+
+    public static void writeKeysToFile(String path, String key) throws IOException {
+        File f = new File(path);
+//        f.getParentFile().mkdirs();
+        FileOutputStream fos = new FileOutputStream(f);
+        fos.write(key.getBytes());
+        fos.flush();
+        fos.close();
+    }
+
+    public static PrivateKey getPrivateKey() {
+        return privateKey;
+    }
+
+    public static PublicKey getPublicKey() {
+        return publicKey;
     }
 }
